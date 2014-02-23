@@ -1,0 +1,8 @@
+Group
+-----
+James Atwood: jatwood@cs.umass.edu
+Luis Pineda: lpineda@cs.umass.edu
+
+Project
+-------
+This Year's SIGMOD Programming Contest
