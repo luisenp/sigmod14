@@ -1,5 +1,29 @@
 \documentclass{article}
 
-\begin{document}
+\title{Project Proposal}
 
+\author{
+Luis Pineda and James Atwood \\
+}
+
+\begin{document}
+\maketitle
+
+We will be working on the sigmod 2014 programming challenge.  Briefly, we are provided with (relational) social network data and asked to implement a set of four queries related in some way to the graph structure induced by the social data.  The motivation for this project is twofold; first, there is a large (and quickly increasing) volume of graph-structured data available today, and second, the appropriate method for representing and querying graph data is still an open problem.
+
+Traditionally, research in databases has focused on the relational model first proposed by Codd \cite{coddpaper}.  This model becomes awkward and inefficient when applied to graph data, particularly for queries related to complex structure (i.e., requiring more than nearest neighbors).  For an example, please see \cite{GraphQL paper} Figures 1 and 2.  More recent work has proposed other data models and query languages that more appropriately capture the rich structure evident in graph data; for instance, \cite{GraphQL paper,neo4j_paper,graphlab paper}.  However, much of this work is task oriented; for example, a system may optimize for path-related queries at the expense of subgraph isomorphism.  For the task at hand, it is unclear which existing technologies, if any, provide the best performance for the queries of this challenge.
+
+Accordingly, we propose the following approach.  Our primary data abstraction will be an adjacency matrix over the high-level nodes which constitute a network.  The nodes will themselves be an interface for the data provided by the challenge.  We will be investigating the particulars of the implementation of the adjacency matrix and node abstractions throughout the project.
+
+To be more concrete, a node could be an object representing a person, with fields for attributes like gender and age.  Or, a node could simply be a pointer to a query which retrieves the node's data from disk.  The adjacency matrix could be a simple $n$ by $n$ array, where $n$ is the total number of people in the dataset.  This adjacency matrix representation scales poorly; we will probably need to employ some sparse representation or other compression to maintain this structure in memory, or develop some method for managing adjacency matrices that are only partially stored in memory.
+
+We set the following milestones:
+
+March 6th: Interface design (write interfaces in Java)
+March 13th: Simple implementations of adjacency matrix and node, load small dataset, 
+March 20th: first two queries
+March 27th: second two queries, midterm report,
+April 8th: load larger dataset, implementation refinement to address scalability issues
+April 15th: Submit system to SIGMOD if we have a competitive entry.
+April 29th or so: Present results to class.
 \end{document}
