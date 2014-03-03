@@ -1,6 +1,7 @@
 \documentclass{article}
 
 \usepackage{natbib}
+\usepackage{hyperref}
 
 \title{Project Proposal}
 
@@ -15,7 +16,11 @@ We will be working on the SIGMOD 2014 programming challenge.  Briefly, in this c
 
 Traditionally, research in databases has focused on the relational model first proposed by Codd  (\cite{codd1970relational}).  This model becomes awkward and inefficient when applied to graph data (\cite{rodriguez2011graph}), particularly for queries related to complex structure (i.e., requiring more than nearest neighbors).  For an example, please see (\cite{he2008graphs}) Figures 1 and 2.  More recent work has proposed other data models and query languages that more appropriately capture the rich structure evident in graph data; for instance, (\cite{he2008graphs,sun2012efficient,low2010graphlab})---see (\cite{angles2008survey}) for a survey of recent graph database models.  However, much of this work is task oriented; for example, a system may optimize for path-related queries at the expense of subgraph isomorphism.  For the task at hand, it is unclear which existing technologies, if any, provide the best performance for the queries of this challenge.
 
-Accordingly, we propose the following approach.  Our primary data abstraction will be an adjacency matrix over the nodes which constitute a network.  The nodes will themselves be an interface for the data provided by the challenge.  We will be investigating the particulars of the implementation of the adjacency matrix and node abstractions throughout the project. To be more concrete, a node could be an object representing a person, with fields for attributes like gender and age.  Or, a node could simply be a pointer to a query which retrieves the node's data from disk.  The adjacency matrix could be a simple $n$ by $n$ array, where $n$ is the total number of people in the dataset.  This adjacency matrix representation scales poorly; we will probably need to employ some sparse representation or other compression mechanism to maintain this structure in memory, or implement some mechanism for managing adjacency matrices that are only partially stored in memory (\cite{wang2004scalable}). Finally, after developing appropriate  implementations of the node and matrix abstractions, we will focus on developing efficient indexing and graph traversing mechanisms for servicing the four types of query that are the subject of the SIGMOD challenge. To accomplish these goals we set the following milestones:
+Accordingly, we propose the following approach.  Our primary data abstraction will be an adjacency matrix over the nodes which constitute a network.  The nodes will themselves be an interface for the data provided by the challenge.  We will be investigating the particulars of the implementation of the adjacency matrix and node abstractions throughout the project. To be more concrete, a node could be an object representing a person, with fields for attributes like gender and age.  Or, a node could simply be a pointer to a query which retrieves the node's data from disk.  The adjacency matrix could be a simple $n$ by $n$ array, where $n$ is the total number of people in the dataset.  This adjacency matrix representation scales poorly; we will probably need to employ some sparse representation or other compression mechanism to maintain this structure in memory, or implement some mechanism for managing adjacency matrices that are only partially stored in memory (\cite{wang2004scalable}). Finally, after developing appropriate  implementations of the node and matrix abstractions, we will focus on developing efficient indexing and graph traversing mechanisms for servicing the four types of query that are the subject of the SIGMOD challenge.
+
+More specifically, our implementation language will be Java.  The adjacency matrix representation will initially be implemented as a sparse Colt matrix \footnote{\url{http://acs.lbl.gov/software/colt/api/cern/colt/matrix/package-summary.html}}.
+
+To accomplish these goals we set the following milestones:
 
 \begin{itemize}
 \item March 6th: System setup and interface design.
