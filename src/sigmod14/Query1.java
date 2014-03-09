@@ -2,7 +2,6 @@ package sigmod14;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Iterator;
 import java.util.Scanner;
 
 import org.neo4j.graphdb.Direction;
@@ -49,13 +48,22 @@ public class Query1 implements Query {
 		while(scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] fields = line.split("|");
-			Node person1 = graphDb.findNodesByLabelAndProperty(userLabel, "id", fields[0]).iterator().next();
-			Node person2 = graphDb.findNodesByLabelAndProperty(userLabel, "id", fields[1]).iterator().next();
-			Relationship r1 = person1.createRelationshipTo(person2, RelTypes.USER);
-			Relationship r2 = person2.createRelationshipTo(person1, RelTypes.USER);
-			r1.setProperty("replies", 0);
-			r2.setProperty("replies", 0);
+			Node person1 = graphDb
+							.findNodesByLabelAndProperty(userLabel, "id", fields[0])
+							.iterator().next();
+			Node person2 = graphDb
+							.findNodesByLabelAndProperty(userLabel, "id", fields[1])
+							.iterator().next();
+			Relationship r = person1.createRelationshipTo(person2, RelTypes.USER);
+			r.setProperty("repliesOut", 0);
+			r.setProperty("repliesIn", 0);
+
+			// FROM NEO4J:
+			// A relationship is equally well traversed in both directions 
+			// so there's no need to create another relationship in the 
+			// opposite direction (in regards to traversal or performance).
 		}
+		scanner.close();
 		
 		//read in comment replies
 		scanner = new Scanner(new File("data/outputDir-1k/comment_replyOf_comment.csv"));
@@ -82,7 +90,9 @@ public class Query1 implements Query {
 			}
 			knowage.setProperty("replies",
 					(Integer) knowage.getProperty("replies") + 1);
-		 }	
+		}
+		
+		scanner.close();
 	}
 	public void run(String data_path, String query_path) {
 		
