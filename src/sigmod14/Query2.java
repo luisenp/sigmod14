@@ -19,6 +19,10 @@ import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.graphdb.schema.Schema;
+import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
+import org.neo4j.unsafe.batchinsert.BatchInserter;
+import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
+import org.neo4j.unsafe.batchinsert.BatchInserters;
 
 public class Query2 implements Query {
 	private static GraphDatabaseService graphDb = Database.graphDb;
@@ -48,9 +52,15 @@ public class Query2 implements Query {
 			schema.awaitIndexOnline(tagIndex, 10, TimeUnit.SECONDS);
 		}
 		
+		long time = System.currentTimeMillis();
 		ReadIn(0); // read in person
+		System.out.println(System.currentTimeMillis() - time);
+		time = System.currentTimeMillis();
 		ReadIn(1); // read in tag interests
+		System.out.println(System.currentTimeMillis() - time);
+		time = System.currentTimeMillis();
 		ReadIn(2); // read in knows
+		System.out.println(System.currentTimeMillis() - time);
 	}
 	
 	public void run(String data_path, String query_path) {		
@@ -116,6 +126,20 @@ public class Query2 implements Query {
 		person1.createRelationshipTo(person2, Database.RelTypes.PERSON_PERSON);		
 	}
 	
+	public void batchInsertUsers() throws FileNotFoundException {
+		String personFile = "data/outputDir-1k/person.csv";
+		BatchInserter inserter = BatchInserters.inserter(Database.DB_PATH);
+		inserter.createDeferredSchemaIndex(Database.personLabel)
+			.on("id").create();
+
+		Scanner scanner = new Scanner(new File(personFile), "UTF-8");
+		scanner.nextLine();
+		while (scanner.hasNextLine()) {
+			
+		}
+	}
+	
+	
 	public void ReadIn(int type) throws FileNotFoundException {
 		String personFile = "data/outputDir-1k/person.csv";
 		String personTagFile = "data/outputDir-1k/person_hasInterest_tag.csv";
@@ -137,7 +161,7 @@ public class Query2 implements Query {
 			break;
 		}
 
-		//TODO I had some problems with the file encoding and scanner on Window.
+		//TODO I had some problems with the file encoding and scanner on Windows.
 		// we should check if the code works well on the contest machines.
 		Scanner scanner = new Scanner(file, "UTF-8");
 		scanner.nextLine();
@@ -166,7 +190,6 @@ public class Query2 implements Query {
 		scanner.close();		
 	}
 	
-	// score is the size of the largest connected component
 	private int getSizeLargestCC(ArrayList<LinkedList<Integer>> graph) {
 		int score = 0;
 		int n = graph.size();
