@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
+import java.util.Map;
 
 import org.neo4j.graphalgo.CostEvaluator;
 import org.neo4j.graphalgo.GraphAlgoFactory;
@@ -21,6 +22,12 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.graphdb.schema.Schema;
+import org.neo4j.helpers.collection.MapUtil;
+import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
+import org.neo4j.unsafe.batchinsert.BatchInserterIndex;
+import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
+import org.neo4j.unsafe.batchinsert.BatchInserters;
+import org.neo4j.unsafe.batchinsert.BatchInserter;
 
 public class Query1 implements Query {
 	private static final String DB_PATH = "target/q1-db";
@@ -37,23 +44,45 @@ public class Query1 implements Query {
 	private static Label userLabel = DynamicLabel.label( "User" );
 	
 	public void setup(String data_path, String query_path) throws FileNotFoundException {
-		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
-		
-		IndexDefinition indexDefinition;
-		try ( Transaction tx = graphDb.beginTx() )
-		{
-		    Schema schema = graphDb.schema();
-		    indexDefinition = schema.indexFor(userLabel )
-		            .on( "id" )
-		            .create();
-		    tx.success();
-		}
-		try ( Transaction tx = graphDb.beginTx() )
-		{
-		    Schema schema = graphDb.schema();
-		    schema.awaitIndexOnline( indexDefinition, 10, TimeUnit.SECONDS );
-		}
-		
+	    //graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
+	    //graphDb = BatchInserters.batchDatabase( DB_PATH, fileSystem);
+	    BatchInserter inserter = BatchInserters.inserter(DB_PATH);
+	    BatchInserterIndexProvider userIndexProvider =
+	            new LuceneBatchInserterIndexProvider( inserter );
+	    BatchInserterIndex users =
+	            userIndexProvider.nodeIndex( "Users", MapUtil.stringMap( "type", "exact" ) );
+	    users.setCacheCapacity( "id", 100000 );
+	    
+	    BatchInserterIndexProvider commentIndexProvider =
+	            new LuceneBatchInserterIndexProvider( inserter );
+	    BatchInserterIndex comments =
+	            commentIndexProvider.nodeIndex( "Comment", MapUtil.stringMap( "type", "exact" ) );
+	    users.setCacheCapacity( "id", 100000 );
+//		IndexDefinition userIndexDefinition;
+//		try ( Transaction tx = graphDb.beginTx() )
+//		{
+//		    Schema schema = graphDb.schema();
+//		    userIndexDefinition = schema.indexFor(userLabel )
+//		            .on( "id" )
+//		            .create();
+//		    tx.success();
+//		}
+//		IndexDefinition commentIndexDefinition;
+//		try ( Transaction tx = graphDb.beginTx() )
+//		{
+//		    Schema schema = graphDb.schema();
+//		    commentIndexDefinition = schema.indexFor(commentLabel )
+//		            .on( "id" )
+//		            .create();
+//		    tx.success();
+//		}
+//		try ( Transaction tx = graphDb.beginTx() )
+//		{
+//		    Schema schema = graphDb.schema();
+//		    schema.awaitIndexOnline( userIndexDefinition, 10, TimeUnit.SECONDS );
+//		    schema.awaitIndexOnline( commentIndexDefinition, 10, TimeUnit.SECONDS );
+//		}
+//		
 		//read in comment creation
 		Scanner scanner = new Scanner(new File(data_path + "/comment_hasCreator_person.csv"));
 		scanner.nextLine();
@@ -61,16 +90,27 @@ public class Query1 implements Query {
 		while(scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] fields = line.split("|");
-			try ( Transaction tx = graphDb.beginTx() ) {
-				Node commentNode = graphDb.createNode(commentLabel);
-				commentNode.setProperty("id", fields[0]);
-				Node userNode = graphDb.createNode(userLabel);
-				userNode.setProperty("id", fields[1]);
-				userNode.createRelationshipTo(commentNode, RelTypes.CREATED);
-				tx.success();
-			}
+//			try ( Transaction tx = graphDb.beginTx() ) {
+//				Node commentNode = graphDb.createNode(commentLabel);
+//				commentNode.setProperty("id", fields[0]);
+//				Node userNode = graphDb.createNode(userLabel);
+//				userNode.setProperty("id", fields[1]);
+//				userNode.createRelationshipTo(commentNode, RelTypes.CREATED);
+//				tx.success();
+//			}
+			Map<String, Object> commentProperties = MapUtil.map( "id", fields[0] );
+			long commentNode = inserter.createNode(commentProperties);
+			comments.add(commentNode, commentProperties);
+			
+			Map<String, Object> userProperties = MapUtil.map( "id", fields[1] );
+			long userNode = inserter.createNode(userProperties);
+			users.add(userNode, userProperties);
+			inserter.createRelationship( userNode, commentNode, RelTypes.CREATED, null );
 		}
-		scanner.close();
+		scanner.close(); 
+		inserter.shutdown();
+
+		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(DB_PATH);
 		//read in person knows person
 		scanner = new Scanner(new File(data_path + "/person_knows_person.csv"));
 		scanner.nextLine();
