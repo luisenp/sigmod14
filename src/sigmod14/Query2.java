@@ -3,29 +3,28 @@ package sigmod14;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.graphdb.schema.Schema;
 
 public class Query2 implements Query {
-	private static final String DB_PATH = "target/q2-db";
-	GraphDatabaseService graphDb;
+	private static GraphDatabaseService graphDb = Database.graphDb;
 		
 	public void 
 	setup(String data_path, String query_path) throws FileNotFoundException {
-		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
-
 		IndexDefinition personIndex;
 		IndexDefinition tagIndex;
 		try (Transaction tx = graphDb.beginTx()) {
@@ -54,61 +53,24 @@ public class Query2 implements Query {
 		ReadIn(2); // read in knows
 	}
 	
-	public void run(String data_path, String query_path) {
-		Date dummyDate = null;
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
+	public void run(String data_path, String query_path) {		
+		String[] fields = parse(query_path);
+		int k = Integer.parseInt(fields[0]);
+		Date d = null;		
 		try {
-			dummyDate = sdf.parse("1950-01-01");
+			d = Database.sdf.parse(fields[1] + ":00:00:00");
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
-		HashMap<String,Integer> personIdx = new HashMap<String,Integer>();
-		Transaction tx = graphDb.beginTx();		
-		try {
-			ResourceIterator<Node> t = graphDb
-				.findNodesByLabelAndProperty(Database.tagLabel, "id", "246")
-				.iterator();
-			Node tag = t.next();
-			t.close();
-			
-			// Indexing relevant nodes
-			int cnt = 0;
-			for (Relationship r 
-					: tag.getRelationships(Database.RelTypes.TAG_PERSON)) {
-				Node person = r.getEndNode();
 
-				System.out.println(person.getProperty("id"));
-				System.out.println(person.getProperty("birthday"));
-				
-				Date birthday = null;
-				String bdString = (String) person.getProperty("birthday");
-				if (bdString.isEmpty()) continue;
-				try {
-					birthday = sdf.parse(bdString);
-				} catch (ParseException e) {
-					e.printStackTrace();
-				}
-				if (birthday.compareTo(dummyDate) < 0) continue;				
-				personIdx.put((String) person.getProperty("id"), cnt);
-				System.out.println(birthday);
-				cnt++;
-			}
-			
-			boolean graph[][] = new boolean[cnt][];
-			for (int i = 0; i < cnt; i++) graph[i] = new boolean[cnt];
-			
-			
-			tx.success();
-		} finally {
-			tx.close();
-		}
+		System.out.println("Score " + getScoreTag("1021", d));
 	}
 	
 	public void teardown() {
 		
 	}
 	
-	public void fillPersonInterest(String line) {
+	public void populatePersonInterest(String line) {
 		String[] fields = line.split("\\|");
 		String personID = fields[0];
 		String tagID = fields[1];
@@ -137,7 +99,7 @@ public class Query2 implements Query {
 		person.setProperty("birthday", fields[4]);
 	}
 	
-	public void fillKnows(String line) {
+	public void populateKnows(String line) {
 		String[] fields = line.split("\\|");
 		ResourceIterator<Node> p1 = graphDb
 			.findNodesByLabelAndProperty(Database.personLabel, "id", fields[0])
@@ -159,8 +121,7 @@ public class Query2 implements Query {
 		String personTagFile = "data/outputDir-1k/person_hasInterest_tag.csv";
 		String personKnowsFile = "data/outputDir-1k/person_knows_person.csv";
 
-		// TODO is there a better way than using these ugly switch/case?
-		
+		// TODO is there a better way than using these ugly switch/case?		
 		File file = null;
 		switch (type) {
 		case 0:
@@ -189,11 +150,10 @@ public class Query2 implements Query {
 					createPersonNode(line);
 					break;
 				case 1:
-					System.out.println(line);
-					fillPersonInterest(line);
+					populatePersonInterest(line);
 					break;
 				case 2:
-					fillKnows(line);
+					populateKnows(line);
 					break;
 				default:
 					break;
@@ -203,7 +163,101 @@ public class Query2 implements Query {
 		} finally {
 			tx.close();
 		}
-		scanner.close();
+		scanner.close();		
+	}
+	
+	// score is the size of the largest connected component
+	private int getSizeLargestCC(ArrayList<LinkedList<Integer>> graph) {
+		int score = 0;
+		int n = graph.size();
+		HashSet<Integer> visited = new HashSet<Integer>();
+		for (int i = 0; i < n; i++) {
+			if (visited.contains(i)) continue;
+			LinkedList<Integer> stack = new LinkedList<Integer>();
+			stack.addFirst(i);
+			int cnt = 0;
+			while (!stack.isEmpty()) {
+				Integer node = stack.removeFirst();
+				if (visited.contains(node)) continue;
+				visited.add(node);
+				cnt++;
+				LinkedList<Integer> neighbors = graph.get(node);
+				for (Integer neigh : neighbors) {
+					stack.addFirst(neigh);
+				}
+			}
+			if (cnt > score) score = cnt;
+		}
+		return score;
+	}
+	
+	private String[] parse(String query) {
+		String[] fields = query.split(",");
+		fields[0] = fields[0].substring(7);
+		fields[1] = fields[1].substring(1, fields[1].length() - 1);
+		return fields;
+	}
+	
+	
+	private int getScoreTag(String tagID, Date d) {
+		ArrayList< LinkedList<Integer> > graph;
+		HashMap<String,Integer> personCache = new HashMap<String,Integer>();
+		Transaction tx = graphDb.beginTx();		
+		try {
+			ResourceIterator<Node> t = graphDb
+				.findNodesByLabelAndProperty(Database.tagLabel, "id", tagID)
+				.iterator();
+			Node tag = t.next();
+			t.close();
+			
+			// Indexing relevant nodes
+			int cnt = 0;
+			for (Relationship r 
+					: tag.getRelationships(Database.RelTypes.TAG_PERSON)) {
+				Node person = r.getEndNode();
+
+				if (!person.hasProperty("birthday")) continue;
+				Date birthday = null;
+				try {
+					String bdString = (String) person.getProperty("birthday");
+					birthday = Database.sdf.parse(bdString + ":00:00:00");
+				} catch (ParseException e) {
+					e.printStackTrace();
+				}
+				if (birthday.before(d)) continue;
+				personCache.put((String) person.getProperty("id"), cnt);
+				cnt++;
+			}
+			
+			graph = new ArrayList< LinkedList<Integer> >(cnt);
+			for (int i = 0; i < cnt; i++) 
+				graph.add(i, new LinkedList<Integer> ());
+			
+			// Filling up graph
+			for (Relationship r 
+					: tag.getRelationships(Database.RelTypes.TAG_PERSON)) {
+				Node person = r.getEndNode();
+				String id = (String) person.getProperty("id");
+				if (!personCache.containsKey(id)) continue;
+				int index = personCache.get(id);
+
+				for (Relationship edge 
+						: person
+							.getRelationships(Database.RelTypes.PERSON_PERSON, 
+											  Direction.OUTGOING)) {
+					Node knows = edge.getEndNode();
+					String idKnows = (String) knows.getProperty("id");
+					if (!personCache.containsKey(idKnows)) continue;
+					int indexKnows = personCache.get(idKnows);
+					graph.get(index).add(indexKnows);
+					graph.get(indexKnows).add(index);
+				}
+			}
+			tx.success();
+		} finally {
+			tx.close();
+		}
 		
+		return getSizeLargestCC(graph);		
 	}
 }

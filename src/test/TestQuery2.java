@@ -15,6 +15,8 @@ public class TestQuery2 {
 		}
 		System.out.println(System.currentTimeMillis() - time);
 		
-		q.run(null, null);
+		time = System.currentTimeMillis();
+		q.run(null, "query2(3, 1980-02-01)");
+		System.out.println(System.currentTimeMillis() - time);
 	}
 }
