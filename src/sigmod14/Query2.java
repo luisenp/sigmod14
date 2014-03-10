@@ -2,6 +2,10 @@ package sigmod14;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
@@ -51,17 +55,49 @@ public class Query2 implements Query {
 	}
 	
 	public void run(String data_path, String query_path) {
-		Transaction tx = graphDb.beginTx();
+		Date dummyDate = null;
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
+		try {
+			dummyDate = sdf.parse("1950-01-01");
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		HashMap<String,Integer> personIdx = new HashMap<String,Integer>();
+		Transaction tx = graphDb.beginTx();		
 		try {
 			ResourceIterator<Node> t = graphDb
 				.findNodesByLabelAndProperty(Database.tagLabel, "id", "246")
 				.iterator();
 			Node tag = t.next();
 			t.close();
-			for (Relationship r : tag.getRelationships(Database.RelTypes.TAG_PERSON)) {
+			
+			// Indexing relevant nodes
+			int cnt = 0;
+			for (Relationship r 
+					: tag.getRelationships(Database.RelTypes.TAG_PERSON)) {
 				Node person = r.getEndNode();
+
 				System.out.println(person.getProperty("id"));
+				System.out.println(person.getProperty("birthday"));
+				
+				Date birthday = null;
+				String bdString = (String) person.getProperty("birthday");
+				if (bdString.isEmpty()) continue;
+				try {
+					birthday = sdf.parse(bdString);
+				} catch (ParseException e) {
+					e.printStackTrace();
+				}
+				if (birthday.compareTo(dummyDate) < 0) continue;				
+				personIdx.put((String) person.getProperty("id"), cnt);
+				System.out.println(birthday);
+				cnt++;
 			}
+			
+			boolean graph[][] = new boolean[cnt][];
+			for (int i = 0; i < cnt; i++) graph[i] = new boolean[cnt];
+			
+			
 			tx.success();
 		} finally {
 			tx.close();
@@ -123,6 +159,8 @@ public class Query2 implements Query {
 		String personTagFile = "data/outputDir-1k/person_hasInterest_tag.csv";
 		String personKnowsFile = "data/outputDir-1k/person_knows_person.csv";
 
+		// TODO is there a better way than using these ugly switch/case?
+		
 		File file = null;
 		switch (type) {
 		case 0:
@@ -137,21 +175,25 @@ public class Query2 implements Query {
 		default:
 			break;
 		}
-		
-		Scanner scanner = new Scanner(file);
+
+		//TODO I had some problems with the file encoding and scanner on Window.
+		// we should check if the code works well on the contest machines.
+		Scanner scanner = new Scanner(file, "UTF-8");
 		scanner.nextLine();
 		Transaction tx = graphDb.beginTx();
 		try {
 			while (scanner.hasNextLine()) {
-				switch (type) {
+				String line = scanner.nextLine();
+				switch (type) {	
 				case 0:
-					createPersonNode(scanner.nextLine());
+					createPersonNode(line);
 					break;
 				case 1:
-					fillPersonInterest(scanner.nextLine());
+					System.out.println(line);
+					fillPersonInterest(line);
 					break;
 				case 2:
-					fillKnows(scanner.nextLine());
+					fillKnows(line);
 					break;
 				default:
 					break;

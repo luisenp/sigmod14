@@ -20,6 +20,7 @@ public class Database {
 	createPersonNode(GraphDatabaseService graphDb, String id) {
 		Node person = graphDb.createNode(personLabel);
 		person.setProperty("id", id);
+		person.setProperty("birthday", "");
 		return person;
 	}
 
