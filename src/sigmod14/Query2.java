@@ -2,100 +2,30 @@ package sigmod14;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashSet;
 import java.util.Scanner;
 
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 public class Query2 implements Query {
 	private static final String DB_PATH = "target/q2-db";
 	GraphDatabaseService graphDb;
 	
-	private static enum RelTypes implements RelationshipType {
-		PERSON;
-	}
-	
 	private static Label personLabel = DynamicLabel.label( "Person" );
 	
-	@SuppressWarnings("unchecked")
 	public void 
 	setup(String data_path, String query_path) throws FileNotFoundException {
-		GraphDatabaseService graphDb = 
-				new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
+		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
 
-		String personFile = "data/outputDir-1k/person.csv";
-		String personTagFile = "data/outputDir-1k/person_hasInterest_tag.csv";
-
-		//read in person
-		Scanner scanner = new Scanner(new File(personFile));
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			String[] fields = line.split("|");
-			String ID = fields[0];
-			Node personNode = graphDb.createNode(personLabel);
-			personNode.setProperty("id", ID);
-
-			Date birthday = null;
-			try {
-				birthday = new SimpleDateFormat("yyyy-mm-dd").parse(fields[4]);
-			} catch (ParseException e) {
-				System.err.println("Error reading birthday.");
-			}
-			personNode.setProperty("birthday", birthday);
-			
-		}
-		scanner.close();
-		
-		//read in tag interests
-		scanner = new Scanner(new File(personTagFile));
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			String[] fields = line.split("|");
-			String personID = fields[0];
-			String tagID = fields[1];
-			Node person = null;
-			for (Node n: graphDb.findNodesByLabelAndProperty(personLabel, 
-															 "id", personID)) {
-				person = n;
-				break;
-			}
-			if (person == null) {
-				person = graphDb.createNode(personLabel);
-				person.setProperty("id", personID);
-				person.setProperty("tags", new HashSet<String> ());
-			}
-			HashSet<String> tags = (HashSet<String>) person.getProperty("tags");
-			tags.add(tagID);
-		}
-		scanner.close();
-		
-		//read in person knows person
-		scanner = new Scanner(new File("data/outputDir-1k/person_knows_person.csv"));
-		scanner.nextLine();
-		while(scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			String[] fields = line.split("|");
-			Node person1 = graphDb.findNodesByLabelAndProperty(personLabel, "id", fields[0]).iterator().next();
-			Node person2 = graphDb.findNodesByLabelAndProperty(personLabel, "id", fields[1]).iterator().next();
-			Relationship r1 = person1.createRelationshipTo(person2, RelTypes.PERSON);
-			Relationship r2 = person2.createRelationshipTo(person1, RelTypes.PERSON);
-		}
-		
-		scanner.close();
+		ReadIn(0); // read in person
+		ReadIn(1); // read in tag interests
+		ReadIn(2); // read in knows
 	}
+	
 	public void run(String data_path, String query_path) {
 		
 	}
@@ -104,4 +34,92 @@ public class Query2 implements Query {
 		
 	}
 	
+	public void fillPersonInterest(String line) {
+		String[] fields = line.split("\\|");
+		String personID = fields[0];
+		String tagID = fields[1];
+		Node person = null;
+		for (Node n: graphDb.findNodesByLabelAndProperty(personLabel, 
+														 "id", personID)) {
+			person = n;
+			break;
+		}
+		if (person == null) {
+			person = graphDb.createNode(personLabel);
+			person.setProperty("id", personID);
+			person.setProperty("birthday", "");
+			person.setProperty("tags", "");
+		}
+		String tags = (String) person.getProperty("tags");
+		tags += "+" + tagID;
+		person.setProperty("tags", tags);
+	}
+
+	
+	public void createPersonNode(String line) {
+		String[] fields = line.split("\\|");
+		String ID = fields[0];
+		Node person = graphDb.createNode(personLabel);
+		person.setProperty("id", ID);
+		person.setProperty("birthday", fields[4]);
+		person.setProperty("tags", "");
+	}
+	
+	public void fillKnows(String line) {
+		String[] fields = line.split("\\|");
+		Node person1 = graphDb
+				.findNodesByLabelAndProperty(personLabel, "id", fields[0])
+				.iterator().next();
+		Node person2 = graphDb
+				.findNodesByLabelAndProperty(personLabel, "id", fields[1])
+				.iterator().next();
+		person1.createRelationshipTo(person2, Database.RelTypes.PERSON);		
+	}
+	
+	public void ReadIn(int type) throws FileNotFoundException {
+		String personFile = "data/outputDir-1k/person.csv";
+		String personTagFile = "data/outputDir-1k/person_hasInterest_tag.csv";
+		String personKnowsFile = "data/outputDir-1k/person_knows_person.csv";
+
+		File file = null;
+		switch (type) {
+		case 0:
+			file = new File(personFile);
+			break;
+		case 1:
+			file = new File(personTagFile);
+			break;
+		case 2:
+			file = new File(personKnowsFile);
+			break;
+		default:
+			break;
+		}
+		
+		Scanner scanner = new Scanner(file);
+		scanner.nextLine();
+		Transaction tx = graphDb.beginTx();
+		try {
+			while (scanner.hasNextLine()) {
+				switch (type) {
+				case 0:
+					createPersonNode(scanner.nextLine());
+					break;
+				case 1:
+					fillPersonInterest(scanner.nextLine());
+					break;
+				case 2:
+					fillKnows(scanner.nextLine());
+					break;
+				default:
+					break;
+				}
+			}
+			tx.success();
+		} finally {
+			tx.close();
+		}
+		scanner.close();
+		
+	}
 }

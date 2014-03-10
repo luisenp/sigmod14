@@ -28,7 +28,7 @@ public class Query1 implements Query {
 	private static Label userLabel = DynamicLabel.label( "User" );
 	
 	public void setup(String data_path, String query_path) throws FileNotFoundException {
-		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
+		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
 		
 		//read in comment creation
 		Scanner scanner = new Scanner(new File("data/outputDir-1k/comment_hasCreator_person.csv"));
