@@ -5,10 +5,10 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
-import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.schema.IndexDefinition;
@@ -17,25 +17,32 @@ import org.neo4j.graphdb.schema.Schema;
 public class Query2 implements Query {
 	private static final String DB_PATH = "target/q2-db";
 	GraphDatabaseService graphDb;
-	
-	private static Label personLabel = DynamicLabel.label( "Person" );
-	
+		
 	public void 
 	setup(String data_path, String query_path) throws FileNotFoundException {
 		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
 
 		IndexDefinition personIndex;
+		IndexDefinition tagIndex;
 		try (Transaction tx = graphDb.beginTx()) {
 			Schema schema = graphDb.schema();
-			personIndex = schema.indexFor(personLabel)
+			personIndex = schema.indexFor(Database.personLabel)
 											.on("id")
 											.create();
+			tagIndex = schema.indexFor(Database.tagLabel)
+					.on("id")
+					.create();
 			tx.success();
 		}
 
 		try (Transaction tx = graphDb.beginTx()) {
 			Schema schema = graphDb.schema();
 			schema.awaitIndexOnline(personIndex, 10, TimeUnit.SECONDS);
+		}
+
+		try (Transaction tx = graphDb.beginTx()) {
+			Schema schema = graphDb.schema();
+			schema.awaitIndexOnline(tagIndex, 10, TimeUnit.SECONDS);
 		}
 		
 		ReadIn(0); // read in person
@@ -44,7 +51,21 @@ public class Query2 implements Query {
 	}
 	
 	public void run(String data_path, String query_path) {
-		
+		Transaction tx = graphDb.beginTx();
+		try {
+			ResourceIterator<Node> t = graphDb
+				.findNodesByLabelAndProperty(Database.tagLabel, "id", "246")
+				.iterator();
+			Node tag = t.next();
+			t.close();
+			for (Relationship r : tag.getRelationships(Database.RelTypes.TAG_PERSON)) {
+				Node person = r.getEndNode();
+				System.out.println(person.getProperty("id"));
+			}
+			tx.success();
+		} finally {
+			tx.close();
+		}
 	}
 	
 	public void teardown() {
@@ -55,42 +76,46 @@ public class Query2 implements Query {
 		String[] fields = line.split("\\|");
 		String personID = fields[0];
 		String tagID = fields[1];
-		Node person = null;
-		for (Node n: graphDb.findNodesByLabelAndProperty(personLabel, 
-														 "id", personID)) {
-			person = n;
-			break;
-		}
-		if (person == null) {
-			person = graphDb.createNode(personLabel);
-			person.setProperty("id", personID);
-			person.setProperty("birthday", "");
-			person.setProperty("tags", "");
-		}
-		String tags = (String) person.getProperty("tags");
-		tags += "+" + tagID;
-		person.setProperty("tags", tags);
+		ResourceIterator<Node> p = graphDb
+			.findNodesByLabelAndProperty(Database.personLabel,"id", personID)
+			.iterator();
+		ResourceIterator<Node> t = graphDb
+				.findNodesByLabelAndProperty(Database.tagLabel,"id", tagID)
+				.iterator();
+		Node person = p.hasNext() ? 
+				p.next() : Database.createPersonNode(graphDb, personID);
+
+		Node tag = t.hasNext() ? 
+				t.next() : Database.createTagNode(graphDb, tagID);
+		p.close();
+		t.close();
+
+		tag.createRelationshipTo(person, Database.RelTypes.TAG_PERSON);
 	}
 
 	
 	public void createPersonNode(String line) {
 		String[] fields = line.split("\\|");
 		String ID = fields[0];
-		Node person = graphDb.createNode(personLabel);
-		person.setProperty("id", ID);
+		Node person = Database.createPersonNode(graphDb, ID);
 		person.setProperty("birthday", fields[4]);
-		person.setProperty("tags", "");
 	}
 	
 	public void fillKnows(String line) {
 		String[] fields = line.split("\\|");
-		Node person1 = graphDb
-				.findNodesByLabelAndProperty(personLabel, "id", fields[0])
-				.iterator().next();
-		Node person2 = graphDb
-				.findNodesByLabelAndProperty(personLabel, "id", fields[1])
-				.iterator().next();
-		person1.createRelationshipTo(person2, Database.RelTypes.PERSON);		
+		ResourceIterator<Node> p1 = graphDb
+			.findNodesByLabelAndProperty(Database.personLabel, "id", fields[0])
+			.iterator();
+		ResourceIterator<Node> p2 = graphDb
+			.findNodesByLabelAndProperty(Database.personLabel, "id", fields[1])
+			.iterator();
+		Node person1 = p1.hasNext() ? 
+				p1.next() : Database.createPersonNode(graphDb, fields[0]);
+		Node person2 = p2.hasNext() ? 
+				p2.next() : Database.createPersonNode(graphDb, fields[1]);;
+		p1.close();
+		p2.close();
+		person1.createRelationshipTo(person2, Database.RelTypes.PERSON_PERSON);		
 	}
 	
 	public void ReadIn(int type) throws FileNotFoundException {

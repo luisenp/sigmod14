@@ -14,5 +14,7 @@ public class TestQuery2 {
 			e.printStackTrace();
 		}
 		System.out.println(System.currentTimeMillis() - time);
+		
+		q.run(null, null);
 	}
 }
