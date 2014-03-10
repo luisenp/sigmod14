@@ -12,28 +12,155 @@ James Atwood and Luis Pineda \\ % alphabetical order
 \begin{document}
 \maketitle
 
-We will be working on the SIGMOD 2014 programming challenge.  Briefly, in this challenge we are provided with a large (relational) social network data set and asked to implement four queries related to the graph structure induced by this data.  The motivation for choosing this project is twofold; first, there is a large (and quickly increasing) volume of graph-structured data available today, and second, developing efficient mechanisms for representing and querying graph data is a challenging research problem that is currently the subject of considerable interest in the database community.
+We will be working on the SIGMOD 2014 programming challenge.  Briefly,
+in this challenge we are provided with a large (relational) social
+network data set and asked to implement four queries related to the
+graph structure of this data.  The motivation for choosing this
+project is twofold; first, there is a large (and quickly increasing)
+volume of graph-structured data available today, and second,
+developing efficient mechanisms for representing and querying graph
+data is a challenging research problem that is currently the subject
+of considerable interest in the database community.
 
-Traditionally, research in databases has focused on the relational model first proposed by Codd  (\cite{codd1970relational}).  This model becomes awkward and inefficient when applied to graph data (\cite{rodriguez2011graph}), particularly for queries related to complex structure (i.e., requiring more than nearest neighbors).  For an example, please see (\cite{he2008graphs}) Figures 1 and 2.  More recent work has proposed other data models and query languages that more appropriately capture the rich structure evident in graph data; for instance, (\cite{he2008graphs,sun2012efficient,low2010graphlab})---see (\cite{angles2008survey}) for a survey of recent graph database models.  However, much of this work is task oriented; for example, a system may optimize for path-related queries at the expense of subgraph isomorphism.  For the task at hand, it is unclear which existing technologies, if any, provide the best performance for the queries of this challenge.
+Traditionally, research in databases has focused on the relational
+model first proposed by Codd \cite{codd1970relational}.  This model
+becomes awkward and inefficient when applied to graph data
+\cite{rodriguez2011graph}, particularly for queries related to
+complex structure (i.e., requiring more than nearest neighbors).  For
+an example, please see \cite{he2008graphs} Figures 1 and 2.  More
+recent work has proposed other data models and query languages that
+more appropriately capture the rich structure evident in graph data;
+for instance,
+\cite{he2008graphs,sun2012efficient,low2010graphlab}---see
+\cite{angles2008survey} for a survey of recent graph database
+models.  
 
-Accordingly, we propose the following approach.  Our primary data abstraction will be an adjacency matrix over the nodes which constitute a network.  The nodes will themselves be an interface for the data provided by the challenge.  We will be investigating the particulars of the implementation of the adjacency matrix and node abstractions throughout the project. To be more concrete, a node could be an object representing a person, with fields for attributes like gender and age.  Or, a node could simply be a pointer to a query which retrieves the node's data from disk.  The adjacency matrix could be a simple $n$ by $n$ array, where $n$ is the total number of people in the dataset.  This adjacency matrix representation scales poorly; we will probably need to employ some sparse representation or other compression mechanism to maintain this structure in memory, or implement some mechanism for managing adjacency matrices that are only partially stored in memory, such as the \emph{ADI} structure described in \cite{wang2004scalable}. Finally, after developing appropriate  implementations of the node and matrix abstractions, we will focus on developing efficient indexing and graph traversing mechanisms for servicing the four types of query that are the subject of the SIGMOD challenge.
+%However, much of this work is task oriented; for example, a system
+%may optimize for path-related queries at the expense of subgraph
+%isomorphism.  For the task at hand, it is unclear which existing
+%technologies, if any, provide the best performance for the queries of
+%this challenge.
 
-More specifically, our implementation language will be Java.  The adjacency matrix representation will initially be implemented as a sparse Colt matrix \footnote{\url{http://acs.lbl.gov/software/colt/api/cern/colt/matrix/package-summary.html}}.
+We have designed our implementation around the open-source
+Neo4j\footnote{\url{http://www.neo4j.org/}} disk-based graph database
+system.  This system is appropriate because the queries in the
+challenge are largely path-oriented, and it is unlikely that all of
+the relevant data will fit in memory.  Neo4j makes use of the
+\emph{ADI} index structure \cite[Chapter~6]{IanRobinson:2013ul} described in \cite{wang2004scalable}, which
+is designed to facilitate efficient edge support checking (that is,
+quickly finding edges) and adjacent edge checking (that is, quickly
+finding edges that share a node).
+This index structure seems well-suited to the task at hand because it
+allows a graph on disk to be efficiently queried with regards to path.
 
-To accomplish these goals we set the following milestones:
+%Accordingly, we propose the following approach.  Our primary data
+%abstraction will be an adjacency matrix over the nodes which
+%constitute a network.  The nodes will themselves be an interface for
+%the data provided by the challenge.  We will be investigating the
+%particulars of the implementation of the adjacency matrix and node
+%abstractions throughout the project. To be more concrete, a node could
+%be an object representing a person, with fields for attributes like
+%gender and age.  Or, a node could simply be a pointer to a query which
+%retrieves the node's data from disk.  The adjacency matrix could be a
+%simple $n$ by $n$ array, where $n$ is the total number of people in
+%the dataset.  This adjacency matrix representation scales poorly; we
+%will probably need to employ some sparse representation or other
+%compression mechanism to maintain this structure in memory, or
+%implement some mechanism for managing adjacency matrices that are only
+%partially stored in memory, such as the \emph{ADI} structure described
+%in \cite{wang2004scalable}. Finally, after developing appropriate
+%implementations of the node and matrix abstractions, we will focus on
+%developing efficient indexing and graph traversing mechanisms for
+%servicing the four types of query that are the subject of the SIGMOD
+%challenge.
 
+Neo4j is a Java system, so our implementation language will be Java.
+We will use the embedded interface of
+Neo4j\footnote{\url{http://docs.neo4j.org/chunked/stable/tutorials-java-embedded.html}}
+in order to construct an indexed graph database from the provided
+data.  This database will be constructed and queried using the Core
+API, which provides the lowest user-level abstractions in the Neo4j
+system, and is generally faster than the higher-level Traversal and
+Cypher APIs \cite[Chapter~6]{IanRobinson:2013ul}.
+
+The following pseudocode demonstrates how we will use the disk-based
+system to perform the first query, which finds the shortest path
+between two people p1 and p2 who have replied to each other's comments
+at least x times.
+
+\begin{verbatim}
+  def populate()
+    db = neo4j.db()
+    db.index(users by id)
+    db.index(comments by id)
+    db.populate(all users)
+    db.populate(all comments)
+    
+    for each p1, p2 in person_knows_person:
+      db.get(p1).addedge(db.get(p2), KNOWS)
+    
+    for each c, p in comment_hasCreator_person:
+      db.get(p).addedge(db.get(c), CREATED)
+    
+    for each c1, c2 in comment_replyOf_comment:
+      u1 = db.get(who created c1)
+      u2 = db.get(who created c2)
+      e = db.get(edge between u1 and u2).increment('replies')
+
+  def query(p1, p2, x):
+    # db.dijkstra(p1, p2, traversal, cost) finds the shortest path
+    # using edges that are valid via function traversal with cost
+    # given by cost
+    path = 
+    db.dijkstra(p1,
+                p2,
+                db.get(u1 knows u2) and db.get(u1 replies u2) >= x
+                                    and db.get(u2 replies u1) >= x,
+                1)
+    return path.length()
+\end{verbatim}
+
+%More specifically, our implementation language will be Java.  The
+%adjacency matrix representation will initially be implemented as a
+%sparse Colt
+%matrix \footnote{\url{http://acs.lbl.gov/software/colt/api/cern/colt/matrix/package-summary.html}}.
+
+Our pipeline is as follows.  When the program starts, an embedded
+Neo4j database is populated with every instance of every node that
+will be needed for each query.  These nodes include people, comments,
+tags, organizations, and others, found in files such as person.csv,
+comments.csv, and so forth.  Each node type is indexed by properties
+that are relevant to the queries; for example, indexing tags by id
+will be useful for performing efficient lookups for query 2, and
+sstoring the number of common tags between persons can be useful for
+query 3.  We then create necessary edges by iterating over
+x\_has\_y.csv files; for instance, to associate comments with their
+creators, we iterate over comment\_hasCreator\_person.csv and add
+edges from each person to each comment.  Note that only nodes and
+edges which are required in some way by the queries will be added to
+the database.
+
+Each query is implemented as a graph algorithm over the graph defined
+in our database.  Neo4j provides methods for common tasks such as
+finding single-source shortest paths; in other cases, we will
+implement the graph algorithm ourselves.  Note that we are usually
+concerned with a subgraph of the large graph; the query only considers
+certain nodes and certain edges.  This can easily be implemented in
+the Neo4j system by filtering nodes and edges by type and property.
+
+Project Milestones:
 \begin{itemize}
-\item March 6th: System setup and interface design.
-\item March 13th: Simple implementations of adjacency matrix and node. Load small dataset.
-\item March 20th: Implement an initial version of the first two queries.
-\item March 27th: Implement an initial version of the second two queries. Submit midterm report.
-\item April 8th: Run experiments with the larger dataset. Refine the implementation to address scalability issues.
+\item At present: data, Neo4j library, and project setup in Eclipse;
+  design of pipeline; implementations of queries 1 and 2 on small test dataset.
+\item March 20th: Implementation of queries 3 and 4 on small test dataset.
+\item March 27th: Submit midterm report.
+\item April 8th:  Run experiments with the larger dataset. Refine the implementation to address scalability issues.
 \item April 15th: Submit system to SIGMOD if we have a competitive entry.
 \item April 29th: Present results to class.
 \item May 8th: Final report.
 \end{itemize}
 
-\bibliographystyle{named}
+\bibliographystyle{abbrv}
 \bibliography{proposal}
 
 \end{document}
