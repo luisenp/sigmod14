@@ -3,6 +3,7 @@ package sigmod14;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -10,6 +11,8 @@ import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.schema.IndexDefinition;
+import org.neo4j.graphdb.schema.Schema;
 
 public class Query2 implements Query {
 	private static final String DB_PATH = "target/q2-db";
@@ -21,6 +24,20 @@ public class Query2 implements Query {
 	setup(String data_path, String query_path) throws FileNotFoundException {
 		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
 
+		IndexDefinition personIndex;
+		try (Transaction tx = graphDb.beginTx()) {
+			Schema schema = graphDb.schema();
+			personIndex = schema.indexFor(personLabel)
+											.on("id")
+											.create();
+			tx.success();
+		}
+
+		try (Transaction tx = graphDb.beginTx()) {
+			Schema schema = graphDb.schema();
+			schema.awaitIndexOnline(personIndex, 10, TimeUnit.SECONDS);
+		}
+		
 		ReadIn(0); // read in person
 		ReadIn(1); // read in tag interests
 		ReadIn(2); // read in knows
