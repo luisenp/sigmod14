@@ -1,10 +1,7 @@
+proposal/*
+!proposal/tex
+!proposal/pdf
 bin/
 data/
 target/
-proposal/proposal.aux
-proposal/proposal.bbl
-proposal/proposal.blg
-proposal/proposal.log
-proposal/proposal.out
-proposal/proposal.pdf
-proposal/proposal.synctex.gz
+queries/
