@@ -132,6 +132,7 @@ public class Query2 implements Query {
 		inserter.createDeferredSchemaIndex(Database.personLabel)
 			.on("id").create();
 
+		Map<String, Object> properties = 
 		Scanner scanner = new Scanner(new File(personFile), "UTF-8");
 		scanner.nextLine();
 		while (scanner.hasNextLine()) {
