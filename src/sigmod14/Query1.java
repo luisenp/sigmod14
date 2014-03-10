@@ -37,7 +37,7 @@ public class Query1 implements Query {
 	private static Label userLabel = DynamicLabel.label( "User" );
 	
 	public void setup(String data_path, String query_path) throws FileNotFoundException {
-		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
+		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
 		
 		IndexDefinition indexDefinition;
 		try ( Transaction tx = graphDb.beginTx() )
@@ -87,7 +87,6 @@ public class Query1 implements Query {
 				r2.setProperty("replies", 0);
 			    tx.success();
 			}
-			
 		}
 		scanner.close();
 		
@@ -96,7 +95,7 @@ public class Query1 implements Query {
 		scanner.nextLine();
 		while(scanner.hasNextLine()) {
 			String line = scanner.nextLine();
-			String[] fields = line.split("|");
+			String [] fields = line.split("|");
 			// this is amazing
 			try ( Transaction tx = graphDb.beginTx() ) {
 				Node replyPersonNode = graphDb
@@ -120,7 +119,7 @@ public class Query1 implements Query {
 						(Integer) knowage.getProperty("replies") + 1);
 				tx.success();	
 			}
-		 }
+		}
 		scanner.close();
 	}
 	public void run(String data_path, String query_path) throws FileNotFoundException {
