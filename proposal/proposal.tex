@@ -31,9 +31,9 @@ an example, please see \cite{he2008graphs} Figures 1 and 2.  More
 recent work has proposed other data models and query languages that
 more appropriately capture the rich structure evident in graph data;
 for instance,
-\cite{he2008graphs,sun2012efficient,low2010graphlab}---see
+\cite{he2008graphs,sun2012efficient,low2010graphlab} (see
 \cite{angles2008survey} for a survey of recent graph database
-models.  
+models).  
 
 %However, much of this work is task oriented; for example, a system
 %may optimize for path-related queries at the expense of subgraph
@@ -41,7 +41,7 @@ models.
 %technologies, if any, provide the best performance for the queries of
 %this challenge.
 
-We have designed our implementation around the open-source
+Accordingly, we have designed our implementation around the open-source
 Neo4j\footnote{\url{http://www.neo4j.org/}} disk-based graph database
 system.  This system is appropriate because the queries in the
 challenge are largely path-oriented, and it is unlikely that all of
@@ -89,6 +89,7 @@ between two people p1 and p2 who have replied to each other's comments
 at least x times.
 
 \begin{verbatim}
+  # populate will be run only once during database initialization
   def populate()
     db = neo4j.db()
     db.index(users by id)
@@ -103,8 +104,8 @@ at least x times.
       db.get(p).addedge(db.get(c), CREATED)
     
     for each c1, c2 in comment_replyOf_comment:
-      u1 = db.get(who created c1)
-      u2 = db.get(who created c2)
+      u1 = db.get(who created c1 by id)
+      u2 = db.get(who created c2 by id)
       e = db.get(edge between u1 and u2).increment('replies')
 
   def query(p1, p2, x):
@@ -129,29 +130,40 @@ Our pipeline is as follows.  When the program starts, an embedded
 Neo4j database is populated with every instance of every node that
 will be needed for each query.  These nodes include people, comments,
 tags, organizations, and others, found in files such as person.csv,
-comments.csv, and so forth.  Each node type is indexed by properties
-that are relevant to the queries; for example, indexing tags by id
-will be useful for performing efficient lookups for query 2, and
-sstoring the number of common tags between persons can be useful for
-query 3.  We then create necessary edges by iterating over
+comments.csv, and so forth. We then create necessary edges by iterating over
 x\_has\_y.csv files; for instance, to associate comments with their
 creators, we iterate over comment\_hasCreator\_person.csv and add
 edges from each person to each comment.  Note that only nodes and
 edges which are required in some way by the queries will be added to
 the database.
 
+Additionally, each node type is indexed by properties that are 
+relevant to the queries. Some examples are:
+
+\begin{itemize}
+\item Indexing tag nodes by id will be useful for performing efficient 
+lookups for query 2.
+\item Indexing organization and place nodes by id will be useful for 
+performing efficient lookups for query 3.
+\item Storing the number of common tags between two persons as part of 
+the KNOWS relationship can be useful for query 3.
+\item Indexing forums by id will be useful for performing efficient lookups 
+for query 4.
+\end{itemize}
+
 Each query is implemented as a graph algorithm over the graph defined
 in our database.  Neo4j provides methods for common tasks such as
 finding single-source shortest paths; in other cases, we will
-implement the graph algorithm ourselves.  Note that we are usually
-concerned with a subgraph of the large graph; the query only considers
-certain nodes and certain edges.  This can easily be implemented in
-the Neo4j system by filtering nodes and edges by type and property.
+implement the graph algorithm ourselves (e.g. finding connected 
+components for query 2).  Note that we are usually concerned with a 
+subgraph of the large graph; the query only considers
+certain nodes and certain edges. This can easily be implemented using
+the Neo4j to filter nodes and edges by type and property.
 
 Project Milestones:
 \begin{itemize}
-\item At present: data, Neo4j library, and project setup in Eclipse;
-  design of pipeline; implementations of queries 1 and 2 on small test dataset.
+\item At present: Download datasets; setup Neo4j library;
+  design of pipeline; implementation of queries 1 and 2 on small test dataset.
 \item March 20th: Implementation of queries 3 and 4 on small test dataset.
 \item March 27th: Submit midterm report.
 \item April 8th:  Run experiments with the larger dataset. Refine the implementation to address scalability issues.
