@@ -33,14 +33,14 @@ public class Database {
 			new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
 	
 	public 
-	static Node createPersonNode(GraphDatabaseService graphDb, String id) {
+	static Node createPersonNode(GraphDatabaseService graphDb, Long id) {
 		Node person = graphDb.createNode(personLabel);
 		person.setProperty("id", id);
 		return person;
 	}
 
 	public
-	static Node	createTagNode(GraphDatabaseService graphDb, String id) {
+	static Node	createTagNode(GraphDatabaseService graphDb, Long id) {
 		Node tag = graphDb.createNode(tagLabel);
 		tag.setProperty("id", id);
 		return tag;

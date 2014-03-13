@@ -73,7 +73,7 @@ public class Query2 implements Query {
 			e.printStackTrace();
 		}
 
-		System.out.println("Score " + getScoreTag("1021", d));
+		System.out.println("Score " + getScoreTag(Long.parseLong("1021"), d));
 	}
 	
 	public void teardown() {
@@ -82,8 +82,8 @@ public class Query2 implements Query {
 	
 	public void populatePersonInterest(String line) {
 		String[] fields = line.split("\\|");
-		String personID = fields[0];
-		String tagID = fields[1];
+		Long personID = Long.parseLong(fields[0]);
+		Long tagID = Long.parseLong(fields[1]);
 		ResourceIterator<Node> p = graphDb
 			.findNodesByLabelAndProperty(Database.personLabel,"id", personID)
 			.iterator();
@@ -104,41 +104,43 @@ public class Query2 implements Query {
 	
 	public void createPersonNode(String line) {
 		String[] fields = line.split("\\|");
-		String ID = fields[0];
-		Node person = Database.createPersonNode(graphDb, ID);
+		Long id = Long.parseLong(fields[0]);
+		Node person = Database.createPersonNode(graphDb, id);
 		person.setProperty("birthday", fields[4]);
 	}
 	
 	public void populateKnows(String line) {
 		String[] fields = line.split("\\|");
+		Long id1 = Long.parseLong(fields[0]);
+		Long id2 = Long.parseLong(fields[1]);
 		ResourceIterator<Node> p1 = graphDb
-			.findNodesByLabelAndProperty(Database.personLabel, "id", fields[0])
+			.findNodesByLabelAndProperty(Database.personLabel, "id", id1)
 			.iterator();
 		ResourceIterator<Node> p2 = graphDb
-			.findNodesByLabelAndProperty(Database.personLabel, "id", fields[1])
+			.findNodesByLabelAndProperty(Database.personLabel, "id", id2)
 			.iterator();
 		Node person1 = p1.hasNext() ? 
-				p1.next() : Database.createPersonNode(graphDb, fields[0]);
+				p1.next() : Database.createPersonNode(graphDb, id1);
 		Node person2 = p2.hasNext() ? 
-				p2.next() : Database.createPersonNode(graphDb, fields[1]);;
+				p2.next() : Database.createPersonNode(graphDb, id2);
 		p1.close();
 		p2.close();
 		person1.createRelationshipTo(person2, Database.RelTypes.PERSON_PERSON);		
 	}
 	
-	public void batchInsertUsers() throws FileNotFoundException {
-		String personFile = "data/outputDir-1k/person.csv";
-		BatchInserter inserter = BatchInserters.inserter(Database.DB_PATH);
-		inserter.createDeferredSchemaIndex(Database.personLabel)
-			.on("id").create();
-
-		Map<String, Object> properties = 
-		Scanner scanner = new Scanner(new File(personFile), "UTF-8");
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {
-			
-		}
-	}
+//	public void batchInsertUsers() throws FileNotFoundException {
+//		String personFile = "data/outputDir-1k/person.csv";
+//		BatchInserter inserter = BatchInserters.inserter(Database.DB_PATH);
+//		inserter.createDeferredSchemaIndex(Database.personLabel)
+//			.on("id").create();
+//
+//		Map<String, Object> properties = 
+//		Scanner scanner = new Scanner(new File(personFile), "UTF-8");
+//		scanner.nextLine();
+//		while (scanner.hasNextLine()) {
+//			
+//		}
+//	}
 	
 	
 	public void ReadIn(int type) throws FileNotFoundException {
@@ -223,9 +225,9 @@ public class Query2 implements Query {
 	}
 	
 	
-	private int getScoreTag(String tagID, Date d) {
+	private int getScoreTag(Long tagID, Date d) {
 		ArrayList< LinkedList<Integer> > graph;
-		HashMap<String,Integer> personCache = new HashMap<String,Integer>();
+		HashMap<Long,Integer> personCache = new HashMap<Long,Integer>();
 		Transaction tx = graphDb.beginTx();		
 		try {
 			ResourceIterator<Node> t = graphDb
@@ -249,7 +251,7 @@ public class Query2 implements Query {
 					e.printStackTrace();
 				}
 				if (birthday.before(d)) continue;
-				personCache.put((String) person.getProperty("id"), cnt);
+				personCache.put((Long) person.getProperty("id"), cnt);
 				cnt++;
 			}
 			
@@ -261,7 +263,7 @@ public class Query2 implements Query {
 			for (Relationship r 
 					: tag.getRelationships(Database.RelTypes.TAG_PERSON)) {
 				Node person = r.getEndNode();
-				String id = (String) person.getProperty("id");
+				Long id = (Long) person.getProperty("id");
 				if (!personCache.containsKey(id)) continue;
 				int index = personCache.get(id);
 
@@ -270,7 +272,7 @@ public class Query2 implements Query {
 							.getRelationships(Database.RelTypes.PERSON_PERSON, 
 											  Direction.OUTGOING)) {
 					Node knows = edge.getEndNode();
-					String idKnows = (String) knows.getProperty("id");
+					Long idKnows = (Long) knows.getProperty("id");
 					if (!personCache.containsKey(idKnows)) continue;
 					int indexKnows = personCache.get(idKnows);
 					graph.get(index).add(indexKnows);
