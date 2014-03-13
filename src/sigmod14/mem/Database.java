@@ -5,10 +5,12 @@ import java.io.FileNotFoundException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.PriorityQueue;
 import java.util.Scanner;
 
 public class Database {
@@ -62,6 +64,19 @@ public class Database {
 	private HashMap<Long,Node> comments;
 	private HashMap<Long,Node> tags;
 	private HashMap<Edge,Edge> edges;
+	
+
+	private class TagComparator implements Comparator<Long> {
+		private Date date;	
+		public TagComparator(Date date) {
+			this.date = date;
+		}		
+		public int compare(Long tag1ID, Long tag2ID) {		
+			Integer score1 = getScoreTag(tag1ID, date);
+			Integer score2 = getScoreTag(tag2ID, date);
+			return score1.compareTo(score2);
+		}
+	}
 	
 	// private constructor to instantiate public INSTANCE
 	private Database() {
@@ -295,15 +310,14 @@ public class Database {
 		LinkedList<Long> topTags = new LinkedList<Long> ();
 		Date date = sdf.parse(d + ":00:00:00");
 		
-		int scores[] = new int[tags.keySet().size()];
-		int i = 0;
+		PriorityQueue<Long> sorted = 
+			new PriorityQueue<Long> (k, new TagComparator(date));
 		for (Long tagID : tags.keySet()) {
-			scores[i++] = getScoreTag(tagID, date);
+			sorted.add(tagID);
+			if (sorted.size() > k) sorted.poll();
 		} 
-		Arrays.sort(scores);
 		
-		for (i = scores.length-1; i >= scores.length - k; i-- )
-			System.out.print(scores[i] + " ");
+		for (Long id : sorted) System.out.print(getScoreTag(id, date) + " ");
 		System.out.println();
 		
 		return topTags;
