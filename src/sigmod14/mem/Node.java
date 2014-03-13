@@ -20,9 +20,10 @@ public class Node {
 		properties = new HashMap<String,Object> ();
 	}
 	
+	// Creates an edge such that edge.out = this and edge.in = other
 	public 
 	Edge createEdge(Node other, EdgeTypes edgeType, RelTypes relType) {
-		Edge e = new Edge(this, other, edgeType, relType);
+		Edge e = new Edge(other, this, edgeType, relType);
 		incident.add(e);
 		return e;
 	}

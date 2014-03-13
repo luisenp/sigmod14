@@ -2,6 +2,10 @@ package sigmod14.mem;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -29,6 +33,7 @@ public class Database {
 		Knows,
 		Replied,
 		Created,
+		Interested,
 	}
 	
 	// file names 
@@ -45,40 +50,162 @@ public class Database {
 	public static final String orgLocFName = "organisation_isLocatedIn_place";
 	public static final String forumTagFName = "forum_hasTag_tag";
 	public static final String forumMemberFName = "forum_hasMember_person";
-	private String dataDirectory;
+	
+	public String dataDir;
+	
+	private static final String charset = "UTF-8";
+	private static final SimpleDateFormat sdf = 
+			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 	
 	// data storage
 	private HashMap<Long,Node> persons;
 	private HashMap<Long,Node> comments;
+	private HashMap<Long,Node> tags;
 	private HashMap<Edge,Edge> edges;
 	
 	// private constructor to instantiate public INSTANCE
 	private Database() {
 		persons = new HashMap<Long,Node> ();
 		comments = new HashMap<Long,Node> ();
+		tags = new HashMap<Long,Node> ();
 		edges = new HashMap<Edge,Edge> ();
 	}
 	
-	public void setDataDirectory(String dir) {
-		this.dataDirectory = dir + "/";
+
+	private 
+	Edge findUndirectedEdge(Node n1, Node n2, RelTypes relType) 
+			throws NotFoundException {
+		Node out = n1.getId() < n2.getId() ? n1 : n2;
+		Node in = n1.getId() < n2.getId() ? n2 : n1;
+		Edge e = new Edge(out, in, EdgeTypes.Undirected, relType);
+		if (edges.containsKey(e)) return edges.get(e);
+		throw new NotFoundException();
 	}
 	
-	public void readData() throws FileNotFoundException {
-		// reading persons
-		Scanner scanner = new Scanner( new File(dataDirectory + personFName + ".csv") );
+	private Node getOtherNode(Edge edge, Node node) {
+		return edge.getOut() == node ? edge.getIn() : edge.getOut();
+	}
+	
+	public void setDataDirectory(String dir) {
+		this.dataDir = dir + "/";
+	}
+	
+	public void readData() throws FileNotFoundException, ParseException {
+		readPerson();
+		readPersonKnowsPerson();
+		readCommentHasCreator();
+		readCommentReply();		
+		readPersonInterest();		
+	}
+
+
+	private void readPersonInterest() throws FileNotFoundException {
+		Scanner scanner = 
+			new Scanner(new File(dataDir + personTagFName + ".csv"),
+						charset);
 		scanner.nextLine();
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
-			Long id = Long.parseLong(fields[0]);
-			Node person = new Node(id, NodeTypes.Person);
-			person.setProperty("birthday", fields[4]);
-			persons.put(id, person);
+			
+			Long personID = Long.parseLong(fields[0]);
+			if (!persons.containsKey(personID)) 
+				persons.put(personID, new Node(personID, NodeTypes.Person));
+			Node person = persons.get(personID);
+			
+			Long tagID = Long.parseLong(fields[1]);
+			if (!tags.containsKey(tagID))
+				tags.put(tagID, new Node(tagID, NodeTypes.Tag));
+			Node tag = tags.get(tagID);
+			
+			Edge edge = tag.createEdge(person, 
+									   EdgeTypes.Directed, 
+									   RelTypes.Interested);
+			edges.put(edge, edge);
+			
 		}
 		scanner.close();
+	}
 
-		// reading person_knows_person
-		scanner = new Scanner( new File(dataDirectory + personKnows + ".csv") );
+
+	private void readCommentReply() throws FileNotFoundException {
+		Scanner scanner = 
+			new Scanner(new File(dataDir + commentReplyFName + ".csv"),
+					    charset);
+		scanner.nextLine();
+		while (scanner.hasNextLine()) {
+			String line = scanner.nextLine();
+			String[] fields = line.split("\\|");
+
+			// (*) reply will already be on DB iff it has a creator who knows
+			//     someone. Otherwise it is useless for query1
+			Long replyID = Long.parseLong(fields[0]);
+			if (!comments.containsKey(replyID)) continue;
+			Node reply = comments.get(replyID);
+			
+			Long repliedToID = Long.parseLong(fields[1]);
+			if (!comments.containsKey(repliedToID)) continue; // see (*) above
+			Node repliedTo = comments.get(repliedToID);
+			
+			Node creatorReply = reply.getIncident().getLast().getIn();
+			Node creatorRepliedTo = repliedTo.getIncident().getLast().getIn();
+			
+			Edge edge;
+			try {
+				edge = findUndirectedEdge(creatorReply, 
+							 	  	      creatorRepliedTo, 
+							 	  	      RelTypes.Knows);
+			} catch (NotFoundException e) {
+				// no point in keeping this reply. creators must know e/other
+				continue;
+			}
+			String property = 
+				edge.getOut().equals(creatorReply) ? "repOut" : "repIn";
+
+			Integer replies = -1;
+			try {
+				replies = (Integer) edge.getPropertyValue(property) + 1;
+			} catch (NotFoundException e) {
+				System.err.println("ERROR: Reply property should exist.");
+				e.printStackTrace();
+				System.exit(-1);
+			}
+			edge.setProperty(property, replies); 
+		}
+		scanner.close();
+	}
+
+
+	// this method assumes that readPerson() and readPersonKnowsPerson
+	// have already been called
+	private void readCommentHasCreator() throws FileNotFoundException {
+		Scanner scanner = 
+			new Scanner(new File(dataDir + commentCreatorFName + ".csv"),
+					    charset);
+		scanner.nextLine();
+		while (scanner.hasNextLine()) {
+			String line = scanner.nextLine();
+			String[] fields = line.split("\\|");
+
+			// if the creator is not already in DB then there is no point
+			// in storing this comment because creator doesn't know anyone
+			Long personID = Long.parseLong(fields[1]);
+			if (!persons.containsKey(personID)) continue;
+			Node person = persons.get(personID);
+			
+			Long commentID = Long.parseLong(fields[0]);
+			Node comment = new Node(commentID, NodeTypes.Comment);
+			comments.put(commentID, comment);
+			
+			comment.createEdge(person, EdgeTypes.Directed, RelTypes.Created);
+		}
+		scanner.close();
+	}
+
+
+	private void readPersonKnowsPerson() throws FileNotFoundException {
+		Scanner scanner = new Scanner(new File(dataDir + personKnows + ".csv"),
+				                      charset);
 		scanner.nextLine();
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
@@ -110,74 +237,23 @@ public class Database {
 			edges.put(edge, edge);
 		}
 		scanner.close();
-		
-		// reading comments_has_creator
-		scanner = 
-			new Scanner(new File(dataDirectory + commentCreatorFName + ".csv"));
+	}
+
+
+	private void readPerson() throws FileNotFoundException, ParseException {
+		Scanner scanner = 
+			new Scanner(new File(dataDir + personFName + ".csv"), charset);
 		scanner.nextLine();
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
-
-			// if the creator is not already in DB then there is no point
-			// in storing this comment because creator doesn't know anyone
-			Long personID = Long.parseLong(fields[1]);
-			if (!persons.containsKey(personID)) continue;
-			Node person = persons.get(personID);
-			
-			Long commentID = Long.parseLong(fields[0]);
-			Node comment = new Node(commentID, NodeTypes.Comment);
-			comments.put(commentID, comment);
-			
-			comment.createEdge(person, EdgeTypes.Directed, RelTypes.Created);
+			Long id = Long.parseLong(fields[0]);
+			Node person = new Node(id, NodeTypes.Person);
+			Date birthday = sdf.parse(fields[4] + ":00:00:00");
+			person.setProperty("birthday", birthday);
+			persons.put(id, person);
 		}
 		scanner.close();
-		
-		// reading comment_replyOf_comment
-		scanner = 
-			new Scanner(new File(dataDirectory + commentReplyFName + ".csv"));
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			String[] fields = line.split("\\|");
-
-			// (*) reply will already be on DB iff it has a creator who knows
-			//     someone. Otherwise it is useless for query1
-			Long replyID = Long.parseLong(fields[0]);
-			if (!comments.containsKey(replyID)) continue;
-			Node reply = comments.get(replyID);
-			
-			Long repliedToID = Long.parseLong(fields[1]);
-			if (!comments.containsKey(repliedToID)) continue; // see (*) above
-			Node repliedTo = comments.get(repliedToID);
-			
-			Node creatorReply = reply.getIncident().getLast().getOut();
-			Node creatorRepliedTo = repliedTo.getIncident().getLast().getOut();
-			
-			Edge edge;
-			try {
-				edge = findUndirectedEdge(creatorReply, 
-							 	  	      creatorRepliedTo, 
-							 	  	      RelTypes.Knows);
-			} catch (NotFoundException e) {
-				// no point in keeping this reply. creators must know e/other
-				continue;
-			}
-			String property = 
-				edge.getOut().equals(creatorReply) ? "repOut" : "repIn";
-
-			Integer replies = -1;
-			try {
-				replies = (Integer) edge.getPropertyValue(property) + 1;
-			} catch (NotFoundException e) {
-				System.err.println("ERROR: Reply property should exist.");
-				e.printStackTrace();
-				System.exit(-1);
-			}
-			edge.setProperty(property, replies); 
-		}
-		scanner.close();
-		
 	}
 	
 	public int query1(long p1, long p2, int x) {
@@ -194,16 +270,16 @@ public class Database {
 			if (visited.contains(person)) continue;
 			if (person.equals(goal)) return d;
 			visited.add(person);
-			for (Edge e: person.getIncident()) {
-				if (e.getRelType() != RelTypes.Knows) continue;
-				Node adjPerson = e.getOut() == person ? e.getIn() : e.getOut();
+			for (Edge edge: person.getIncident()) {
+				if (edge.getRelType() != RelTypes.Knows) continue;
+				Node adjPerson = getOtherNode(edge, person);
 				int replyOut = -1, replyIn = -1;
 				try {
-					replyOut = (Integer) e.getPropertyValue("repOut");
-					replyIn = (Integer) e.getPropertyValue("repIn");
-				} catch (NotFoundException e1) {
+					replyOut = (Integer) edge.getPropertyValue("repOut");
+					replyIn = (Integer) edge.getPropertyValue("repIn");
+				} catch (NotFoundException e) {
 					System.err.println("ERROR: Property should had been defined");
-					e1.printStackTrace();
+					e.printStackTrace();
 					System.exit(-1);
 				}
 				if (replyIn > x && replyOut > x) {
@@ -215,13 +291,65 @@ public class Database {
 		return -1;
 	}
 	
-	private 
-	Edge findUndirectedEdge(Node n1, Node n2, RelTypes relType) 
-			throws NotFoundException {
-		Node out = n1.getId() < n2.getId() ? n1 : n2;
-		Node in = n1.getId() < n2.getId() ? n2 : n1;
-		Edge e = new Edge(out, in, EdgeTypes.Undirected, relType);
-		if (edges.containsKey(e)) return edges.get(e);
-		throw new NotFoundException();
+	public LinkedList<Long> query2(int k, String d) throws ParseException {
+		LinkedList<Long> topTags = new LinkedList<Long> ();
+		Date date = sdf.parse(d + ":00:00:00");
+		
+		int scores[] = new int[tags.keySet().size()];
+		int i = 0;
+		for (Long tagID : tags.keySet()) {
+			scores[i++] = getScoreTag(tagID, date);
+		} 
+		Arrays.sort(scores);
+		
+		for (i = scores.length-1; i >= scores.length - k; i-- )
+			System.out.print(scores[i] + " ");
+		System.out.println();
+		
+		return topTags;
 	}
+	
+	public int getScoreTag(long tagID, Date date) {
+		HashSet<Long> vertices = new HashSet<Long>();
+		Node tag = tags.get(tagID);
+		
+		// getting all the persons in the induced graph
+		for (Edge edge : tag.getIncident()) {
+			if (!edge.getRelType().equals(RelTypes.Interested)) continue;
+			Node person = edge.getIn();
+			Date birthday;
+			try {
+				birthday = (Date) person.getPropertyValue("birthday");
+			} catch (NotFoundException e) {
+				continue;	// this person is not defined in persons.csv 
+			}
+			if (birthday.before(date)) continue;
+			vertices.add(person.getId());
+		}
+
+		int score = 0;
+		HashSet<Long> visited = new HashSet<Long>();
+		for (Long id : vertices) {
+			if (visited.contains(id)) continue;
+			int sizeComp = 0;
+			LinkedList<Long> stack = new LinkedList<Long> ();
+			stack.add(id);
+			while (!stack.isEmpty()) {
+				Long idPerson = stack.removeFirst();
+				if (visited.contains(idPerson)) continue;
+				visited.add(idPerson);
+				sizeComp++;
+				Node person = persons.get(idPerson);
+				for (Edge edge : person.getIncident()) {
+					if (!edge.getRelType().equals(RelTypes.Knows)) continue;
+					Long idAdjPerson = getOtherNode(edge, person).getId();
+					if (!vertices.contains(idAdjPerson)) continue;
+					stack.addFirst(idAdjPerson);
+				}
+			}
+			if (sizeComp > score) score = sizeComp;
+		}
+		return score;
+	}
+	
 }
