@@ -2,9 +2,9 @@ package sigmod14.mem;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -55,7 +55,7 @@ public class Database {
 	
 	public String dataDir;
 	
-	private static final String charset = "UTF-8";
+	private static final String charset = "ISO-8859-1";
 	private static final SimpleDateFormat sdf = 
 			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 	
@@ -74,7 +74,21 @@ public class Database {
 		public int compare(Long tag1ID, Long tag2ID) {		
 			Integer score1 = getScoreTag(tag1ID, date);
 			Integer score2 = getScoreTag(tag2ID, date);
-			return score1.compareTo(score2);
+			int comp = score1.compareTo(score2);
+			if (comp == 0) {
+				try {
+					String name1 = 
+						(String) tags.get(tag1ID).getPropertyValue("name");
+					String name2 = 
+						(String) tags.get(tag2ID).getPropertyValue("name");
+					return name2.compareTo(name1);
+				} catch (NotFoundException e) {
+					System.err.println("ERROR: All tags should have a name");
+					e.printStackTrace();
+					System.exit(-1);
+				}
+			}
+			return comp;
 		}
 	}
 	
@@ -110,6 +124,12 @@ public class Database {
 		readPersonKnowsPerson();
 		readCommentHasCreator();
 		readCommentReply();		
+		try {
+			readTag();
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
 		readPersonInterest();		
 	}
 
@@ -271,6 +291,28 @@ public class Database {
 		scanner.close();
 	}
 	
+	private void readTag() throws FileNotFoundException {
+		File file = new File(dataDir + tagFName + ".csv");
+//		BufferedReader br = new BufferedReader(new FileReader(file));
+		Scanner scanner = new Scanner(file, charset);
+		scanner.nextLine();
+//		String line = br.readLine();
+//		while ((line = br.readLine()) != null) {
+		while (scanner.hasNextLine()) {			
+			String line = scanner.nextLine();
+//			line = br.readLine();			
+			String[] fields = line.split("\\|");
+			Long id = Long.parseLong(fields[0]);
+			String name = fields[1];
+			Node tag = new Node(id, NodeTypes.Tag);
+			tag.setProperty("name", name);
+			tags.put(id, tag);
+			
+		}
+		scanner.close();
+//		br.close();
+	}
+	
 	public int query1(long p1, long p2, int x) {
 		Node goal = persons.get(p2);
 		if (goal == null) return -1;
@@ -306,8 +348,8 @@ public class Database {
 		return -1;
 	}
 	
-	public LinkedList<Long> query2(int k, String d) throws ParseException {
-		LinkedList<Long> topTags = new LinkedList<Long> ();
+	public LinkedList<String> query2(int k, String d) throws ParseException {
+		LinkedList<String> topTags = new LinkedList<String> ();
 		Date date = sdf.parse(d + ":00:00:00");
 		
 		PriorityQueue<Long> sorted = 
@@ -317,8 +359,16 @@ public class Database {
 			if (sorted.size() > k) sorted.poll();
 		} 
 		
-		for (Long id : sorted) System.out.print(getScoreTag(id, date) + " ");
-		System.out.println();
+		while (!sorted.isEmpty()) {
+			try {
+				topTags.addFirst((String) tags.get(sorted.poll())
+											 .getPropertyValue("name"));
+			} catch (NotFoundException e) {
+				System.err.println("ERROR: All tags should have a name");
+				e.printStackTrace();
+				System.exit(-1);
+			}
+		}
 		
 		return topTags;
 	}
