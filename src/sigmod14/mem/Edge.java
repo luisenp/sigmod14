@@ -5,7 +5,6 @@ import java.util.HashMap;
 import sigmod14.mem.Database.EdgeTypes;
 import sigmod14.mem.Database.RelTypes;
 
-// TODO: I think edge type is useless. Might have to remove later
 public class Edge {
 	private Node out;
 	private Node in;

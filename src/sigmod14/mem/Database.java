@@ -61,7 +61,7 @@ public class Database {
 	
 	// data storage
 	private HashMap<Long,Node> persons;
-	private HashMap<Long,Node> comments;
+	private HashMap<Long,Long> commentCreator;
 	private HashMap<Long,Node> tags;
 	private HashMap<Edge,Edge> edges;
 	
@@ -94,10 +94,10 @@ public class Database {
 	
 	// private constructor to instantiate public INSTANCE
 	private Database() {
-		persons = new HashMap<Long,Node> ();
-		comments = new HashMap<Long,Node> ();
-		tags = new HashMap<Long,Node> ();
-		edges = new HashMap<Edge,Edge> ();
+		persons = new HashMap<Long,Node> (100000);
+		commentCreator = new HashMap<Long,Long> (5000000);
+		tags = new HashMap<Long,Node> (100000);
+		edges = new HashMap<Edge,Edge> (500000);
 	}
 	
 
@@ -120,24 +120,29 @@ public class Database {
 	}
 	
 	public void readData() throws FileNotFoundException, ParseException {
-		readPerson();
-		readPersonKnowsPerson();
-		readCommentHasCreator();
-		readCommentReply();		
 		try {
+			long time = System.currentTimeMillis();
+			readPerson();
+			readPersonKnowsPerson();
+			readCommentHasCreator();
+			readCommentReply();			
+			commentCreator.clear();	// no need to store comments anymore			
 			readTag();
+			readPersonInterest();
+			System.out.println(System.currentTimeMillis() - time);
 		} catch (IOException e) {
-			e.printStackTrace();
+			e.printStackTrace();	//TODO Remove
 			System.exit(-1);
 		}
-		readPersonInterest();		
 	}
 
 
 	private void readPersonInterest() throws FileNotFoundException {
-		Scanner scanner = 
-			new Scanner(new File(dataDir + personTagFName + ".csv"),
-						charset);
+//		BufferedReader br = new BufferedReader(new FileReader(file),200);
+//		String line = br.readLine();
+//		while ((line = br.readLine()) != null) {
+		String file = dataDir + personTagFName + ".csv";
+		Scanner scanner = new Scanner(new File(file), charset);
 		scanner.nextLine();
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
@@ -160,6 +165,7 @@ public class Database {
 			
 		}
 		scanner.close();
+//		br.close();
 	}
 
 
@@ -168,22 +174,26 @@ public class Database {
 			new Scanner(new File(dataDir + commentReplyFName + ".csv"),
 					    charset);
 		scanner.nextLine();
+		int cnt = 0;
 		while (scanner.hasNextLine()) {
+			cnt++;
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
 
 			// (*) reply will already be on DB iff it has a creator who knows
 			//     someone. Otherwise it is useless for query1
 			Long replyID = Long.parseLong(fields[0]);
-			if (!comments.containsKey(replyID)) continue;
-			Node reply = comments.get(replyID);
+			if (!commentCreator.containsKey(replyID)) 
+				continue;
 			
 			Long repliedToID = Long.parseLong(fields[1]);
-			if (!comments.containsKey(repliedToID)) continue; // see (*) above
-			Node repliedTo = comments.get(repliedToID);
+			if (!commentCreator.containsKey(repliedToID)) 
+				continue; // see (*) above
 			
-			Node creatorReply = reply.getIncident().getLast().getIn();
-			Node creatorRepliedTo = repliedTo.getIncident().getLast().getIn();
+			Node creatorReply = 
+				persons.get(commentCreator.get(replyID));
+			Node creatorRepliedTo = 
+				persons.get(commentCreator.get(repliedToID));
 			
 			Edge edge;
 			try {
@@ -205,7 +215,12 @@ public class Database {
 				e.printStackTrace();
 				System.exit(-1);
 			}
-			edge.setProperty(property, replies); 
+			edge.setProperty(property, replies);
+
+			// TODO DEBUG
+			if (Math.random() < 0.001) {
+				System.out.println(cnt);
+			}	
 		}
 		scanner.close();
 	}
@@ -214,9 +229,11 @@ public class Database {
 	// this method assumes that readPerson() and readPersonKnowsPerson
 	// have already been called
 	private void readCommentHasCreator() throws FileNotFoundException {
-		Scanner scanner = 
-			new Scanner(new File(dataDir + commentCreatorFName + ".csv"),
-					    charset);
+//		BufferedReader br = new BufferedReader(new FileReader(file), 1024*1024);
+//		String line = br.readLine();
+//		while ((line = br.readLine()) != null) {
+		String file = dataDir + commentCreatorFName + ".csv";
+		Scanner scanner = new Scanner(new File(file), charset);
 		scanner.nextLine();
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
@@ -226,15 +243,19 @@ public class Database {
 			// in storing this comment because creator doesn't know anyone
 			Long personID = Long.parseLong(fields[1]);
 			if (!persons.containsKey(personID)) continue;
-			Node person = persons.get(personID);
 			
 			Long commentID = Long.parseLong(fields[0]);
-			Node comment = new Node(commentID, NodeTypes.Comment);
-			comments.put(commentID, comment);
-			
-			comment.createEdge(person, EdgeTypes.Directed, RelTypes.Created);
+			commentCreator.put(commentID, personID);
+
+			// TODO DEBUG
+			if (Math.random() < 0.001) {
+				System.out.print(persons.size() + " ");
+				System.out.print(commentCreator.size() + " ");
+				System.out.println(edges.size());
+			}	
 		}
 		scanner.close();
+//		br.close();
 	}
 
 
@@ -276,8 +297,11 @@ public class Database {
 
 
 	private void readPerson() throws FileNotFoundException, ParseException {
-		Scanner scanner = 
-			new Scanner(new File(dataDir + personFName + ".csv"), charset);
+//		BufferedReader br = new BufferedReader(new FileReader(file), 200);
+//		String line = br.readLine();
+//		while ((line = br.readLine()) != null) {
+		String file = dataDir + personFName + ".csv";
+		Scanner scanner = new Scanner(new File(file), charset);
 		scanner.nextLine();
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
@@ -289,18 +313,18 @@ public class Database {
 			persons.put(id, person);
 		}
 		scanner.close();
+//		br.close();
 	}
 	
-	private void readTag() throws FileNotFoundException {
-		File file = new File(dataDir + tagFName + ".csv");
+	private void readTag() throws IOException {
 //		BufferedReader br = new BufferedReader(new FileReader(file));
-		Scanner scanner = new Scanner(file, charset);
-		scanner.nextLine();
 //		String line = br.readLine();
 //		while ((line = br.readLine()) != null) {
+		File file = new File(dataDir + tagFName + ".csv");
+		Scanner scanner = new Scanner(file, charset);
+		scanner.nextLine();
 		while (scanner.hasNextLine()) {			
 			String line = scanner.nextLine();
-//			line = br.readLine();			
 			String[] fields = line.split("\\|");
 			Long id = Long.parseLong(fields[0]);
 			String name = fields[1];

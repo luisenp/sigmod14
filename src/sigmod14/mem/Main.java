@@ -7,7 +7,7 @@ public class Main {
 	
 	public static void main(String[] args) {
 		Database DB = Database.INSTANCE;
-		DB.setDataDirectory("data/outputDir-1k");
+		DB.setDataDirectory("data/outputDir-10k");
 		try {
 			long time = System.currentTimeMillis();
 			DB.readData();
