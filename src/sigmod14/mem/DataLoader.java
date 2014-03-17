@@ -16,6 +16,7 @@ public class DataLoader {
 	public static final DataLoader INSTANCE = new DataLoader();
 	
 	private static final String charset = "ISO-8859-1";
+//	private static final String charset = "UTF-8";
 	public static final SimpleDateFormat sdf =
 			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 	
@@ -27,6 +28,7 @@ public class DataLoader {
 	public static final String personKnows = "person_knows_person";
 	public static final String personTagFName = "person_hasInterest_tag";
 	public static final String personLocation = "person_isLocatedIn_place";
+	public static final String placeFName = "place";
 	public static final String placePlaceFName = "place_isPartOf_place";
 	public static final String personStudyFName = "person_studyAt_organisation";
 	public static final String personWorkFName = "person_workAt_organisation";
@@ -42,7 +44,8 @@ public class DataLoader {
 	private HashMap<Long,Node> places;
 	private HashMap<Long,Long> commentCreator;
 	private HashMap<Long,Long> orgPlace;
-	private HashMap<Long,Long> placePlace;
+	private HashMap<Long,Long> placeLocatedAtPlace;
+	private HashMap<String,Long> namePlaces;
 	private HashMap<Edge,Edge> edges;
 	
 	private DataLoader() {
@@ -52,7 +55,8 @@ public class DataLoader {
 
 		commentCreator = Database.INSTANCE.getCommentCreator();
 		orgPlace = Database.INSTANCE.getOrgPlace();
-		placePlace = Database.INSTANCE.getPlacePlace();
+		placeLocatedAtPlace = Database.INSTANCE.getPlaceLocatedAtPlace();
+		namePlaces = Database.INSTANCE.getNamePlaces();
 		
 		edges = Database.INSTANCE.getEdges();
 	}
@@ -61,28 +65,30 @@ public class DataLoader {
 		this.dataDir = dir + "/";
 	}
 
-	public void readData() throws FileNotFoundException, ParseException {
+	public void loadData() throws FileNotFoundException, ParseException {
 		// data used to create person graph 
-		readPerson();
+		loadPersons();
 		readPersonKnowsPerson();
 		
 		// data used for query1
-		readCommentHasCreator();
-		readCommentReply();			
+		loadCommentsCreator();
+		loadCommentReplyTo();			
 		commentCreator.clear();	// no need to store comments
 		
 		// data used for query2
-		readTag();
-		readPersonInterest();
+		loadTags();
+		loadPersonsInterest();
 		
 		// data used for query3
-		readOrganizationPlace();
-		readPersonWorkStudy();
-		readPlacePlace();
+		loadPlaces();
+		loadPersonsPlace();
+		loadOrganizationsPlace();
+		loadPersonWorkStudy();
+		loadPlaceAtPlace();
 		orgPlace.clear();
 	}
 	
-	private void readCommentReply() throws FileNotFoundException {
+	private void loadCommentReplyTo() throws FileNotFoundException {
 		Scanner scanner = 
 			new Scanner(new File(dataDir + commentReplyFName + ".csv"),
 					    charset);
@@ -109,7 +115,7 @@ public class DataLoader {
 			try {
 				edge = Database.INSTANCE.findUndirectedEdge(creatorReply, 
 									                        creatorRepliedTo, 
-												            RelTypes.Knows);
+												            RelTypes.KNOWS);
 			} catch (NotFoundException e) {
 				// no point in keeping this reply. creators must know e/other
 				continue;
@@ -133,7 +139,7 @@ public class DataLoader {
 
 	// this method assumes that readPerson() and readPersonKnowsPerson
 	// have already been called
-	private void readCommentHasCreator() throws FileNotFoundException {
+	private void loadCommentsCreator() throws FileNotFoundException {
 		String file = dataDir + commentCreatorFName + ".csv";
 		Scanner scanner = new Scanner(new File(file), charset);
 		scanner.nextLine();
@@ -163,19 +169,19 @@ public class DataLoader {
 			
 			Long person1ID = Long.parseLong(fields[0]);
 			if (!persons.containsKey(person1ID)) 
-				persons.put(person1ID, new Node(person1ID, NodeTypes.Person));
+				persons.put(person1ID, new Node(person1ID, NodeTypes.PERSON));
 			
 			Long person2ID = Long.parseLong(fields[1]);
 			if (!persons.containsKey(person2ID)) 
-				persons.put(person2ID, new Node(person2ID, NodeTypes.Person));
+				persons.put(person2ID, new Node(person2ID, NodeTypes.PERSON));
 
 			// convention is that the node with lowest ID will be "out" node
 			Node person1 = persons.get(Math.min(person1ID, person2ID));
 			Node person2 = persons.get(Math.max(person1ID, person2ID));
 			Edge edge = new Edge(person1, 
 							     person2, 
-					             EdgeTypes.Undirected, 
-					             RelTypes.Knows);			
+					             EdgeTypes.UNDIRECTED, 
+					             RelTypes.KNOWS);			
 			
 			// person_knows_person has both directed edges, we only need one
 			if (edges.containsKey(edge)) continue;
@@ -190,7 +196,7 @@ public class DataLoader {
 	}
 
 
-	private void readPerson() throws FileNotFoundException, ParseException {
+	private void loadPersons() throws FileNotFoundException, ParseException {
 		String file = dataDir + personFName + ".csv";
 		Scanner scanner = new Scanner(new File(file), charset);
 		scanner.nextLine();
@@ -198,7 +204,7 @@ public class DataLoader {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
 			Long id = Long.parseLong(fields[0]);
-			Node person = new Node(id, NodeTypes.Person);
+			Node person = new Node(id, NodeTypes.PERSON);
 			Date birthday = sdf.parse(fields[4] + ":00:00:00");
 			person.setProperty("birthday", birthday);
 			persons.put(id, person);
@@ -206,7 +212,7 @@ public class DataLoader {
 		scanner.close();
 	}
 	
-	private void readTag() throws FileNotFoundException {
+	private void loadTags() throws FileNotFoundException {
 		File file = new File(dataDir + tagFName + ".csv");
 		Scanner scanner = new Scanner(file, charset);
 		scanner.nextLine();
@@ -215,15 +221,15 @@ public class DataLoader {
 			String[] fields = line.split("\\|");
 			Long id = Long.parseLong(fields[0]);
 			String name = fields[1];
-			Node tag = new Node(id, NodeTypes.Tag);
+			Node tag = new Node(id, NodeTypes.TAG);
 			tag.setProperty("name", name);
 			tags.put(id, tag);
 			
 		}
 		scanner.close();
 	}
-	
-	private void readPersonInterest() throws FileNotFoundException {
+		
+	private void loadPersonsInterest() throws FileNotFoundException {
 		String file = dataDir + personTagFName + ".csv";
 		Scanner scanner = new Scanner(new File(file), charset);
 		scanner.nextLine();
@@ -233,24 +239,40 @@ public class DataLoader {
 			
 			Long personID = Long.parseLong(fields[0]);
 			if (!persons.containsKey(personID)) 
-				persons.put(personID, new Node(personID, NodeTypes.Person));
+				persons.put(personID, new Node(personID, NodeTypes.PERSON));
 			Node person = persons.get(personID);
 			
 			Long tagID = Long.parseLong(fields[1]);
 			if (!tags.containsKey(tagID))
-				tags.put(tagID, new Node(tagID, NodeTypes.Tag));
+				tags.put(tagID, new Node(tagID, NodeTypes.TAG));
 			Node tag = tags.get(tagID);
 			
 			Edge edge = tag.createEdge(person, 
-									   EdgeTypes.Directed, 
-									   RelTypes.Interested);
+									   EdgeTypes.DIRECTED, 
+									   RelTypes.INTERESTED);
 			edges.put(edge, edge);
 			
 		}
 		scanner.close();
 	}
 
-	private void readOrganizationPlace() throws FileNotFoundException {
+	private void loadPlaces() throws FileNotFoundException {
+		String file = dataDir + placeFName + ".csv";
+		Scanner scanner = new Scanner(new File(file), charset);
+		scanner.nextLine();
+		while (scanner.hasNextLine()) {
+			String line = scanner.nextLine();			
+			String[] fields = line.split("\\|");
+			System.out.println(line);
+			Long idPlace = Long.parseLong(fields[0]);
+			Node place = new Node(idPlace, NodeTypes.PLACE);
+			places.put(idPlace, place);
+			namePlaces.put(fields[1], idPlace);
+		}
+		scanner.close();
+	}
+	
+	private void loadOrganizationsPlace() throws FileNotFoundException {
 		File file = new File(dataDir + orgLocFName + ".csv");
 		Scanner scanner = new Scanner(file, charset);
 		scanner.nextLine();
@@ -264,12 +286,38 @@ public class DataLoader {
 		scanner.close();		
 	}
 	
-	private void readPersonWorkStudy() throws FileNotFoundException {
-		readPersonOrg(personWorkFName);
-		readPersonOrg(personStudyFName);
+	private void loadPersonsPlace() throws FileNotFoundException {
+		String file = dataDir + personLocation + ".csv";
+		Scanner scanner = new Scanner(new File(file), charset);
+		scanner.nextLine();
+		while (scanner.hasNextLine()) {
+			String line = scanner.nextLine();
+			String[] fields = line.split("\\|");
+			
+			Long personID = Long.parseLong(fields[0]);
+			if (!persons.containsKey(personID)) 
+				continue;	// person doesn't know other persons
+			Node person = persons.get(personID);
+			
+			Long placeID = Long.parseLong(fields[1]);
+			if (!places.containsKey(placeID))
+				places.put(placeID, new Node(placeID, NodeTypes.PLACE));
+			Node place = places.get(placeID);
+			
+			Edge edge = person.createEdge(place,
+							     	     EdgeTypes.DIRECTED, 
+									     RelTypes.LOCATEDAT);
+			edges.put(edge, edge);
+		}
+		scanner.close();
 	}
 	
-	private void readPersonOrg(String fileName) throws FileNotFoundException {
+	private void loadPersonWorkStudy() throws FileNotFoundException {
+		loadPersonsOrg(personWorkFName);
+		loadPersonsOrg(personStudyFName);
+	}
+	
+	private void loadPersonsOrg(String fileName) throws FileNotFoundException {
 		String file = dataDir + fileName + ".csv";
 		Scanner scanner = new Scanner(new File(file), charset);
 		scanner.nextLine();
@@ -287,18 +335,18 @@ public class DataLoader {
 				continue;	// no place for this organization
 			Long placeID = orgPlace.get(orgID);
 			if (!places.containsKey(placeID))
-				places.put(placeID, new Node(placeID, NodeTypes.Place));
+				places.put(placeID, new Node(placeID, NodeTypes.PLACE));
 			Node place = places.get(placeID);
 			
-			Edge edge = place.createEdge(person, 
-							     	     EdgeTypes.Directed, 
-									     RelTypes.LocationOf);
-			edges.put(edge, edge);			
+			Edge edge = person.createEdge(place,
+							     	     EdgeTypes.DIRECTED, 
+									     RelTypes.LOCATEDAT);
+			edges.put(edge, edge);
 		}
 		scanner.close();
 	}
 	
-	private void readPlacePlace() throws FileNotFoundException {
+	private void loadPlaceAtPlace() throws FileNotFoundException {
 		File file = new File(dataDir + placePlaceFName + ".csv");
 		Scanner scanner = new Scanner(file, charset);
 		scanner.nextLine();
@@ -307,7 +355,7 @@ public class DataLoader {
 			String[] fields = line.split("\\|");
 			Long idPlace1 = Long.parseLong(fields[0]);
 			Long idPlace2 = Long.parseLong(fields[1]);
-			placePlace.put(idPlace1, idPlace2);
+			placeLocatedAtPlace.put(idPlace1, idPlace2);
 		}
 		scanner.close();
 	}
