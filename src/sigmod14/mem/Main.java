@@ -7,10 +7,11 @@ public class Main {
 	
 	public static void main(String[] args) {
 		Database DB = Database.INSTANCE;
-		DB.setDataDirectory("data/outputDir-1k");
+		DataLoader loader = DataLoader.INSTANCE;
+		loader.setDataDirectory("data/outputDir-1k");
 		try {
 			long time = System.currentTimeMillis();
-			DB.readData();
+			loader.readData();
 			System.out.print(System.currentTimeMillis() - time);
 			System.out.println(" ( time reading data )");
 		} catch (FileNotFoundException e) {
