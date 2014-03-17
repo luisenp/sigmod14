@@ -53,6 +53,10 @@ public class Edge {
 	public Node getIn() {
 		return in;
 	}
+	
+	public Node getOtherNode(Node node) {
+		return this.getOut().equals(node) ? getIn() : getOut();
+	}
 
 	public boolean equals(Object o) {
 		Edge other = (Edge) o;

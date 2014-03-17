@@ -2,7 +2,6 @@ package sigmod14.mem;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Comparator;
@@ -20,10 +19,8 @@ public class Database {
 	public static enum NodeTypes {
 		Person,
 		Tag,
-		Comment,
 		Forum,
 		Place,
-		Organization
 	}
 	
 	public static enum EdgeTypes {
@@ -33,9 +30,8 @@ public class Database {
 
 	public static enum RelTypes {
 		Knows,
-		Replied,
-		Created,
 		Interested,
+		LocationOf
 	}
 	
 	// file names 
@@ -61,8 +57,11 @@ public class Database {
 	
 	// data storage
 	private HashMap<Long,Node> persons;
-	private HashMap<Long,Long> commentCreator;
 	private HashMap<Long,Node> tags;
+	private HashMap<Long,Node> places;
+	private HashMap<Long,Long> commentCreator;
+	private HashMap<Long,Long> orgPlace;
+	private HashMap<Long,Long> placePlace;
 	private HashMap<Edge,Edge> edges;
 	
 
@@ -93,16 +92,20 @@ public class Database {
 	}
 	
 	// private constructor to instantiate public INSTANCE
-	private Database() {
+	private Database() {		
 		persons = new HashMap<Long,Node> (100000);
-		commentCreator = new HashMap<Long,Long> (5000000);
 		tags = new HashMap<Long,Node> (100000);
+		places = new HashMap<Long,Node> (10000);
+
+		commentCreator = new HashMap<Long,Long> (10000000);
+		orgPlace = new HashMap<Long,Long> (10000);
+		placePlace = new HashMap<Long,Long> (10000);
+		
 		edges = new HashMap<Edge,Edge> (500000);
 	}
 	
 
-	private 
-	Edge findUndirectedEdge(Node n1, Node n2, RelTypes relType) 
+	private Edge findUndirectedEdge(Node n1, Node n2, RelTypes relType) 
 			throws NotFoundException {
 		Node out = n1.getId() < n2.getId() ? n1 : n2;
 		Node in = n1.getId() < n2.getId() ? n2 : n1;
@@ -111,72 +114,37 @@ public class Database {
 		throw new NotFoundException();
 	}
 	
-	private Node getOtherNode(Edge edge, Node node) {
-		return edge.getOut() == node ? edge.getIn() : edge.getOut();
-	}
-	
 	public void setDataDirectory(String dir) {
 		this.dataDir = dir + "/";
 	}
 	
 	public void readData() throws FileNotFoundException, ParseException {
-		try {
-			long time = System.currentTimeMillis();
-			readPerson();
-			readPersonKnowsPerson();
-			readCommentHasCreator();
-			readCommentReply();			
-			commentCreator.clear();	// no need to store comments anymore			
-			readTag();
-			readPersonInterest();
-			System.out.println(System.currentTimeMillis() - time);
-		} catch (IOException e) {
-			e.printStackTrace();	//TODO Remove
-			System.exit(-1);
-		}
+		// data used to create person graph 
+		readPerson();
+		readPersonKnowsPerson();
+		
+		// data used for query1
+		readCommentHasCreator();
+		readCommentReply();			
+		commentCreator.clear();	// no need to store comments
+		
+		// data used for query2
+		readTag();
+		readPersonInterest();
+		
+		// data used for query3
+		readOrganizationPlace();
+		readPersonWorkStudy();
+		readPlacePlace();
+		orgPlace.clear();
 	}
-
-
-	private void readPersonInterest() throws FileNotFoundException {
-//		BufferedReader br = new BufferedReader(new FileReader(file),200);
-//		String line = br.readLine();
-//		while ((line = br.readLine()) != null) {
-		String file = dataDir + personTagFName + ".csv";
-		Scanner scanner = new Scanner(new File(file), charset);
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			String[] fields = line.split("\\|");
-			
-			Long personID = Long.parseLong(fields[0]);
-			if (!persons.containsKey(personID)) 
-				persons.put(personID, new Node(personID, NodeTypes.Person));
-			Node person = persons.get(personID);
-			
-			Long tagID = Long.parseLong(fields[1]);
-			if (!tags.containsKey(tagID))
-				tags.put(tagID, new Node(tagID, NodeTypes.Tag));
-			Node tag = tags.get(tagID);
-			
-			Edge edge = tag.createEdge(person, 
-									   EdgeTypes.Directed, 
-									   RelTypes.Interested);
-			edges.put(edge, edge);
-			
-		}
-		scanner.close();
-//		br.close();
-	}
-
 
 	private void readCommentReply() throws FileNotFoundException {
 		Scanner scanner = 
 			new Scanner(new File(dataDir + commentReplyFName + ".csv"),
 					    charset);
 		scanner.nextLine();
-		int cnt = 0;
 		while (scanner.hasNextLine()) {
-			cnt++;
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
 
@@ -215,12 +183,7 @@ public class Database {
 				e.printStackTrace();
 				System.exit(-1);
 			}
-			edge.setProperty(property, replies);
-
-			// TODO DEBUG
-			if (Math.random() < 0.001) {
-				System.out.println(cnt);
-			}	
+			edge.setProperty(property, replies);	
 		}
 		scanner.close();
 	}
@@ -229,9 +192,6 @@ public class Database {
 	// this method assumes that readPerson() and readPersonKnowsPerson
 	// have already been called
 	private void readCommentHasCreator() throws FileNotFoundException {
-//		BufferedReader br = new BufferedReader(new FileReader(file), 1024*1024);
-//		String line = br.readLine();
-//		while ((line = br.readLine()) != null) {
 		String file = dataDir + commentCreatorFName + ".csv";
 		Scanner scanner = new Scanner(new File(file), charset);
 		scanner.nextLine();
@@ -245,17 +205,9 @@ public class Database {
 			if (!persons.containsKey(personID)) continue;
 			
 			Long commentID = Long.parseLong(fields[0]);
-			commentCreator.put(commentID, personID);
-
-			// TODO DEBUG
-			if (Math.random() < 0.001) {
-				System.out.print(persons.size() + " ");
-				System.out.print(commentCreator.size() + " ");
-				System.out.println(edges.size());
-			}	
+			commentCreator.put(commentID, personID);	
 		}
 		scanner.close();
-//		br.close();
 	}
 
 
@@ -297,9 +249,6 @@ public class Database {
 
 
 	private void readPerson() throws FileNotFoundException, ParseException {
-//		BufferedReader br = new BufferedReader(new FileReader(file), 200);
-//		String line = br.readLine();
-//		while ((line = br.readLine()) != null) {
 		String file = dataDir + personFName + ".csv";
 		Scanner scanner = new Scanner(new File(file), charset);
 		scanner.nextLine();
@@ -313,13 +262,9 @@ public class Database {
 			persons.put(id, person);
 		}
 		scanner.close();
-//		br.close();
 	}
 	
-	private void readTag() throws IOException {
-//		BufferedReader br = new BufferedReader(new FileReader(file));
-//		String line = br.readLine();
-//		while ((line = br.readLine()) != null) {
+	private void readTag() throws FileNotFoundException {
 		File file = new File(dataDir + tagFName + ".csv");
 		Scanner scanner = new Scanner(file, charset);
 		scanner.nextLine();
@@ -334,7 +279,95 @@ public class Database {
 			
 		}
 		scanner.close();
-//		br.close();
+	}
+	
+	private void readPersonInterest() throws FileNotFoundException {
+		String file = dataDir + personTagFName + ".csv";
+		Scanner scanner = new Scanner(new File(file), charset);
+		scanner.nextLine();
+		while (scanner.hasNextLine()) {
+			String line = scanner.nextLine();
+			String[] fields = line.split("\\|");
+			
+			Long personID = Long.parseLong(fields[0]);
+			if (!persons.containsKey(personID)) 
+				persons.put(personID, new Node(personID, NodeTypes.Person));
+			Node person = persons.get(personID);
+			
+			Long tagID = Long.parseLong(fields[1]);
+			if (!tags.containsKey(tagID))
+				tags.put(tagID, new Node(tagID, NodeTypes.Tag));
+			Node tag = tags.get(tagID);
+			
+			Edge edge = tag.createEdge(person, 
+									   EdgeTypes.Directed, 
+									   RelTypes.Interested);
+			edges.put(edge, edge);
+			
+		}
+		scanner.close();
+	}
+
+	private void readOrganizationPlace() throws FileNotFoundException {
+		File file = new File(dataDir + orgLocFName + ".csv");
+		Scanner scanner = new Scanner(file, charset);
+		scanner.nextLine();
+		while (scanner.hasNextLine()) {			
+			String line = scanner.nextLine();
+			String[] fields = line.split("\\|");
+			Long idOrg = Long.parseLong(fields[0]);
+			Long idPlace = Long.parseLong(fields[1]);
+			orgPlace.put(idOrg, idPlace);
+		}
+		scanner.close();		
+	}
+	
+	private void readPersonWorkStudy() throws FileNotFoundException {
+		readPersonOrg(personWorkFName);
+		readPersonOrg(personStudyFName);
+	}
+	
+	private void readPersonOrg(String fileName) throws FileNotFoundException {
+		String file = dataDir + fileName + ".csv";
+		Scanner scanner = new Scanner(new File(file), charset);
+		scanner.nextLine();
+		while (scanner.hasNextLine()) {
+			String line = scanner.nextLine();
+			String[] fields = line.split("\\|");
+			
+			Long personID = Long.parseLong(fields[0]);
+			if (!persons.containsKey(personID)) 
+				continue;	// person doesn't know other persons
+			Node person = persons.get(personID);
+			
+			Long orgID = Long.parseLong(fields[1]);
+			if (!orgPlace.containsKey(orgID))
+				continue;	// no place for this organization
+			Long placeID = orgPlace.get(orgID);
+			if (!places.containsKey(placeID))
+				places.put(placeID, new Node(placeID, NodeTypes.Place));
+			Node place = places.get(placeID);
+			
+			Edge edge = place.createEdge(person, 
+							     	     EdgeTypes.Directed, 
+									     RelTypes.LocationOf);
+			edges.put(edge, edge);			
+		}
+		scanner.close();
+	}
+	
+	private void readPlacePlace() throws FileNotFoundException {
+		File file = new File(dataDir + placePlaceFName + ".csv");
+		Scanner scanner = new Scanner(file, charset);
+		scanner.nextLine();
+		while (scanner.hasNextLine()) {			
+			String line = scanner.nextLine();
+			String[] fields = line.split("\\|");
+			Long idPlace1 = Long.parseLong(fields[0]);
+			Long idPlace2 = Long.parseLong(fields[1]);
+			placePlace.put(idPlace1, idPlace2);
+		}
+		scanner.close();
 	}
 	
 	public int query1(long p1, long p2, int x) {
@@ -353,7 +386,7 @@ public class Database {
 			visited.add(person);
 			for (Edge edge: person.getIncident()) {
 				if (edge.getRelType() != RelTypes.Knows) continue;
-				Node adjPerson = getOtherNode(edge, person);
+				Node adjPerson = edge.getOtherNode(person);
 				int replyOut = -1, replyIn = -1;
 				try {
 					replyOut = (Integer) edge.getPropertyValue("repOut");
@@ -430,7 +463,7 @@ public class Database {
 				Node person = persons.get(idPerson);
 				for (Edge edge : person.getIncident()) {
 					if (!edge.getRelType().equals(RelTypes.Knows)) continue;
-					Long idAdjPerson = getOtherNode(edge, person).getId();
+					Long idAdjPerson = edge.getOtherNode(person).getId();
 					if (!vertices.contains(idAdjPerson)) continue;
 					stack.addFirst(idAdjPerson);
 				}
