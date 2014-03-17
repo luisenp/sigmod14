@@ -9,7 +9,7 @@ public class Main {
 		DataLoader loader = DataLoader.INSTANCE;
 		QueryHandler qHandler = QueryHandler.INSTANCE;
 		
-		loader.setDataDirectory("data/outputDir-1k");
+		loader.setDataDirectory("data/outputDir-10k");
 		try {
 			long time = System.currentTimeMillis();
 			loader.loadData();
@@ -65,9 +65,9 @@ public class Main {
 //		qHandler.query3(3, 2, "Luoyang");
 //		qHandler.query3(4, 3, "Taiwan");
 		// 10k dataset
-		qHandler.query3(3, 2, "Asia");
-		qHandler.query3(4, 3, "Dolgoprudny");
-		qHandler.query3(3, 2, "Yongkang_District");
+//		qHandler.query3(3, 2, "Asia");
+//		qHandler.query3(4, 3, "Dolgoprudny");
+//		qHandler.query3(3, 2, "Yongkang_District");
 	}
 
 }

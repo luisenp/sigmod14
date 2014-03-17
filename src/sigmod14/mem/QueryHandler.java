@@ -24,13 +24,63 @@ public class QueryHandler {
 	}
 	
 	private class TagComparator implements Comparator<Long> {
-		private Date date;	
+		private Date date;
+		private HashMap<Long, Integer> scores;
+		
 		public TagComparator(Date date) {
 			this.date = date;
-		}		
+			scores = new HashMap<Long, Integer>();
+		}
+		
+
+		private int getScoreTag(long tagID) {
+			if (scores.containsKey(tagID)) return scores.get(tagID);
+			HashSet<Long> vertices = new HashSet<Long>();
+			Node tag = tags.get(tagID);
+			
+			// getting all the persons in the induced graph
+			for (Edge edge : tag.getIncident()) {
+				if (!edge.getRelType().equals(RelTypes.INTERESTED)) continue;
+				Node person = edge.getIn();
+				Date birthday;
+				try {
+					birthday = (Date) person.getPropertyValue("birthday");
+				} catch (NotFoundException e) {
+					continue;	// this person is not defined in persons.csv 
+				}
+				if (birthday.before(date)) continue;
+				vertices.add(person.getId());
+			}
+
+			int score = 0;
+			HashSet<Long> visited = new HashSet<Long>();
+			for (Long id : vertices) {
+				if (visited.contains(id)) continue;
+				int sizeComp = 0;
+				LinkedList<Long> stack = new LinkedList<Long> ();
+				stack.add(id);
+				while (!stack.isEmpty()) {
+					Long idPerson = stack.removeFirst();
+					if (visited.contains(idPerson)) continue;
+					visited.add(idPerson);
+					sizeComp++;
+					Node person = persons.get(idPerson);
+					for (Edge edge : person.getIncident()) {
+						if (!edge.getRelType().equals(RelTypes.KNOWS)) continue;
+						Long idAdjPerson = edge.getOtherNode(person).getId();
+						if (!vertices.contains(idAdjPerson)) continue;
+						stack.addFirst(idAdjPerson);
+					}
+				}
+				if (sizeComp > score) score = sizeComp;
+			}
+			scores.put(tagID, score);
+			return score;
+		}
+		
 		public int compare(Long tag1ID, Long tag2ID) {		
-			Integer score1 = getScoreTag(tag1ID, date);
-			Integer score2 = getScoreTag(tag2ID, date);
+			Integer score1 = getScoreTag(tag1ID);
+			Integer score2 = getScoreTag(tag2ID);
 			int comp = score1.compareTo(score2);
 			if (comp == 0) {
 				try {
@@ -47,6 +97,13 @@ public class QueryHandler {
 			}
 			return comp;
 		}
+	}
+
+	private class PersonPairComparator implements Comparator {
+		public int compare(Object o1, Object o2) {
+			return 0;
+		}
+		
 	}
 	
 	// pointers to Database storage
@@ -139,56 +196,39 @@ public class QueryHandler {
 		return false;
 	}	
 	
-	LinkedList<Long> query3(int k, int hops, String placeName) {
+	public LinkedList<Long> query3(int k, int hops, String placeName) {
 		Long placeID = namePlaces.get(placeName);
-		int cnt = 0;
+		HashSet<Long> personsHere = new HashSet<Long> ();
 		for (Long personID : persons.keySet()) {
-			if (personIsLocatedAt(personID, placeID)) cnt++;
+			if (personIsLocatedAt(personID, placeID)) 
+				personsHere.add(personID);
 		}
-		System.out.println(cnt);
+
+		for (Long idP1 : personsHere) {
+			Node p1 = persons.get(idP1);
+			LinkedList<Node> queue = new LinkedList<Node>();
+			LinkedList<Integer> dist = new LinkedList<Integer>();
+			HashSet<Long> visited = new HashSet<Long>();
+			queue.addFirst(p1);
+			dist.addFirst(0);
+			while (!queue.isEmpty()) {
+				Node p2 = queue.removeFirst();
+				int d = dist.removeFirst();
+				if (visited.contains(p2.getId())) continue;
+				if (p1.getId() != p2.getId() && p1.getId() < p2.getId()
+						&& personsHere.contains(p2.getId())) {
+				}
+				if (d == hops) continue;;
+				for (Edge edge : p2.getIncident()) {
+					if (edge.getRelType() != RelTypes.KNOWS) continue;
+					queue.add(edge.getOtherNode(p2));
+					dist.add(d + 1);
+				}
+			}
+			 
+		}
+		
 		return null;
 	}
 
-	private int getScoreTag(long tagID, Date date) {
-		HashSet<Long> vertices = new HashSet<Long>();
-		Node tag = tags.get(tagID);
-		
-		// getting all the persons in the induced graph
-		for (Edge edge : tag.getIncident()) {
-			if (!edge.getRelType().equals(RelTypes.INTERESTED)) continue;
-			Node person = edge.getIn();
-			Date birthday;
-			try {
-				birthday = (Date) person.getPropertyValue("birthday");
-			} catch (NotFoundException e) {
-				continue;	// this person is not defined in persons.csv 
-			}
-			if (birthday.before(date)) continue;
-			vertices.add(person.getId());
-		}
-
-		int score = 0;
-		HashSet<Long> visited = new HashSet<Long>();
-		for (Long id : vertices) {
-			if (visited.contains(id)) continue;
-			int sizeComp = 0;
-			LinkedList<Long> stack = new LinkedList<Long> ();
-			stack.add(id);
-			while (!stack.isEmpty()) {
-				Long idPerson = stack.removeFirst();
-				if (visited.contains(idPerson)) continue;
-				visited.add(idPerson);
-				sizeComp++;
-				Node person = persons.get(idPerson);
-				for (Edge edge : person.getIncident()) {
-					if (!edge.getRelType().equals(RelTypes.KNOWS)) continue;
-					Long idAdjPerson = edge.getOtherNode(person).getId();
-					if (!vertices.contains(idAdjPerson)) continue;
-					stack.addFirst(idAdjPerson);
-				}
-			}
-			if (sizeComp > score) score = sizeComp;
-		}
-		return score;
-	}
 }
