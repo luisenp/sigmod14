@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.Scanner;
 
 import sigmod14.mem.Database.EdgeTypes;
-import sigmod14.mem.Database.NodeTypes;
 import sigmod14.mem.Database.RelTypes;
 
 public class DataLoader {
@@ -179,11 +178,11 @@ public class DataLoader {
 			
 			Long person1ID = Long.parseLong(fields[0]);
 			if (!persons.containsKey(person1ID)) 
-				persons.put(person1ID, new Node(person1ID, NodeTypes.PERSON));
+				persons.put(person1ID, new Node(person1ID));
 			
 			Long person2ID = Long.parseLong(fields[1]);
 			if (!persons.containsKey(person2ID)) 
-				persons.put(person2ID, new Node(person2ID, NodeTypes.PERSON));
+				persons.put(person2ID, new Node(person2ID));
 
 			// convention is that the node with lowest ID will be "out" node
 			Node person1 = persons.get(Math.min(person1ID, person2ID));
@@ -214,7 +213,7 @@ public class DataLoader {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
 			Long id = Long.parseLong(fields[0]);
-			Node person = new Node(id, NodeTypes.PERSON);
+			Node person = new Node(id);
 			Date birthday = sdf.parse(fields[4] + ":00:00:00");
 			person.setProperty("birthday", birthday);
 			persons.put(id, person);
@@ -231,7 +230,7 @@ public class DataLoader {
 			String[] fields = line.split("\\|");
 			Long id = Long.parseLong(fields[0]);
 			String name = fields[1];
-			Node tag = new Node(id, NodeTypes.TAG);
+			Node tag = new Node(id);
 			tag.setProperty("name", name);
 			tags.put(id, tag);
 			
@@ -249,12 +248,12 @@ public class DataLoader {
 			
 			Long personID = Long.parseLong(fields[0]);
 			if (!persons.containsKey(personID)) 
-				persons.put(personID, new Node(personID, NodeTypes.PERSON));
+				persons.put(personID, new Node(personID));
 			Node person = persons.get(personID);
 			
 			Long tagID = Long.parseLong(fields[1]);
 			if (!tags.containsKey(tagID))
-				tags.put(tagID, new Node(tagID, NodeTypes.TAG));
+				tags.put(tagID, new Node(tagID));
 			Node tag = tags.get(tagID);
 			
 			Edge edge = tag.createEdge(person, 
@@ -275,7 +274,7 @@ public class DataLoader {
 			String line = scanner.nextLine();			
 			String[] fields = line.split("\\|");
 			Long idPlace = Long.parseLong(fields[0]);
-			Node place = new Node(idPlace, NodeTypes.PLACE);
+			Node place = new Node(idPlace);
 			places.put(idPlace, place);
 			if (!namePlaces.containsKey(fields[1])) {
 				namePlaces.put(fields[1], String.valueOf(idPlace));
@@ -316,7 +315,7 @@ public class DataLoader {
 			
 			Long placeID = Long.parseLong(fields[1]);
 			if (!places.containsKey(placeID))
-				places.put(placeID, new Node(placeID, NodeTypes.PLACE));
+				places.put(placeID, new Node(placeID));
 			Node place = places.get(placeID);
 			
 			Edge edge = person.createEdge(place,
@@ -350,7 +349,7 @@ public class DataLoader {
 				continue;	// no place for this organization
 			Long placeID = orgPlace.get(orgID);
 			if (!places.containsKey(placeID))
-				places.put(placeID, new Node(placeID, NodeTypes.PLACE));
+				places.put(placeID, new Node(placeID));
 			Node place = places.get(placeID);
 			
 			Edge edge = person.createEdge(place,
@@ -385,7 +384,7 @@ public class DataLoader {
 			Long idForum = Long.parseLong(fields[0]);
 			Long idTag = Long.parseLong(fields[1]);
 			if (!forums.containsKey(idForum))
-				forums.put(idForum, new Node(idForum, NodeTypes.FORUM));
+				forums.put(idForum, new Node(idForum));
 			Node forum = forums.get(idForum);
 			Node tag = tags.get(idTag);
 			forum.createEdge(tag, EdgeTypes.DIRECTED, RelTypes.FORUMTAG);

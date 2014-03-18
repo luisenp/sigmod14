@@ -5,13 +5,6 @@ import java.util.HashMap;
 public class Database {
 	public static final Database INSTANCE = new Database();
 	
-	public static enum NodeTypes {
-		PERSON,
-		TAG,
-		FORUM,
-		PLACE,
-	}
-	
 	public static enum EdgeTypes {
 		DIRECTED,
 		UNDIRECTED,

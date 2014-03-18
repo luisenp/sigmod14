@@ -4,18 +4,15 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 import sigmod14.mem.Database.EdgeTypes;
-import sigmod14.mem.Database.NodeTypes;
 import sigmod14.mem.Database.RelTypes;
 
 public class Node {
 	private long id;
-	private NodeTypes type;
 	private HashMap<String,Object> properties;
 	private LinkedList<Edge> incident;
 	
-	public Node(long id, NodeTypes type) {
+	public Node(long id) {
 		this.id = id;
-		this.type = type;
 		incident = new LinkedList<Edge> ();
 		properties = new HashMap<String,Object> ();
 	}
@@ -30,10 +27,6 @@ public class Node {
 	
 	public void addEdge(Edge edge) {
 		incident.add(edge);
-	}
-	
-	public NodeTypes getType() {
-		return type;
 	}
 	
 	public Object getPropertyValue(String property) throws NotFoundException {
@@ -55,11 +48,11 @@ public class Node {
 	
 	public boolean equals(Object o) {
 		Node other = (Node) o;
-		return type == other.type && id == other.id;
+		return id == other.id;
 	}
 	
 	public int hashCode() {
-		return type.ordinal() + 37*(int)id;
+		return (int) id;
 	}
 	
 	public 
@@ -71,7 +64,7 @@ public class Node {
 	}
 	
 	public String toString() {
-		return "" + type + ": " + id;
+		return String.valueOf(id);
 	}
 	
 }

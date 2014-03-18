@@ -37,14 +37,6 @@ public class Edge {
 		if (properties == null) properties = new HashMap<String, Object>();
 		properties.put(property, value);
 	}
-
-	public Database.NodeTypes getTypeOut() {
-		return out.getType();
-	}
-
-	public Database.NodeTypes getTypeIn() {
-		return in.getType();
-	}
 	
 	public Node getOut() {
 		return out;
