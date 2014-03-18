@@ -36,7 +36,7 @@ public class Database {
 		places = new HashMap<Long,Node> (10000);
 		forums = new HashMap<Long,Node> (10000);
 
-		commentCreator = new HashMap<Long,Long> (10000000);
+		commentCreator = new HashMap<Long,Long> (22000000);
 		orgPlace = new HashMap<Long,Long> (10000);
 		placeLocatedAtPlace = new HashMap<Long,Long> (10000);
 		namePlaces = new HashMap<String,String> (10000);

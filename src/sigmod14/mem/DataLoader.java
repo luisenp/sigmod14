@@ -151,6 +151,7 @@ public class DataLoader {
 	private void loadCommentsCreator() throws FileNotFoundException {
 		String file = dataDir + commentCreatorFName + ".csv";
 		Scanner scanner = new Scanner(new File(file), charset);
+		scanner.useDelimiter("\n|\\|");
 		scanner.nextLine();
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
@@ -162,7 +163,7 @@ public class DataLoader {
 			if (!persons.containsKey(personID)) continue;
 			
 			Long commentID = Long.parseLong(fields[0]);
-			commentCreator.put(commentID, personID);	
+			commentCreator.put(commentID, personID);			
 		}
 		scanner.close();
 	}

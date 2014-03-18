@@ -8,7 +8,7 @@ import java.util.Scanner;
 public class Main {
 	// TODO The singleton design seems ugly. Consider change later
 	public static void main(String[] args) {
-		String charset = "UTF-8";
+		String charset = "UTF-8"; // "ISO-8859-1"; 
 		DataLoader loader = DataLoader.INSTANCE;
 		loader.setCharset(charset);
 		QueryHandler qHandler = QueryHandler.INSTANCE;		
