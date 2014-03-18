@@ -2,6 +2,7 @@ package sigmod14.mem;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.Scanner;
 
@@ -19,11 +20,13 @@ public class Main {
 			loader.loadData();
 			System.out.print(System.currentTimeMillis() - time);
 			System.out.println(" ( time reading data )");
-		} catch (FileNotFoundException e) {
-			System.err.println("ERROR: File not found");
+		} catch (IOException e) {
+			System.err.println("ERROR: I/O problem");
+			e.printStackTrace();
 			System.exit(-1);
 		} catch (ParseException e) {
 			System.err.println("ERROR: Problem Parsing date");
+			e.printStackTrace();
 			System.exit(-1);
 		}
 

@@ -1,7 +1,10 @@
 package sigmod14.mem;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -69,14 +72,14 @@ public class DataLoader {
 		this.dataDir = dir + "/";
 	}
 
-	public void loadData() throws FileNotFoundException, ParseException {
+	public void loadData() throws IOException, ParseException {
 		// data used to create person graph 
 		loadPersons();
 		readPersonKnowsPerson();
 		
 		// data used for query1
 		loadCommentsCreator();
-		loadCommentReplyTo();			
+		loadCommentReplyTo();
 		// no need to store comments anymore
 		commentCreator = null;
 		Database.INSTANCE.clearCommentCreator(); 
@@ -98,13 +101,11 @@ public class DataLoader {
 		loadForumMember();
 	}
 	
-	private void loadCommentReplyTo() throws FileNotFoundException {
-		Scanner scanner = 
-			new Scanner(new File(dataDir + commentReplyFName + ".csv"),
-					    charset);
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
+	private void loadCommentReplyTo() throws IOException {
+		String file = dataDir + commentReplyFName + ".csv";
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		String line = br.readLine();
+		while ((line = br.readLine()) != null) {
 			String[] fields = line.split("\\|");
 
 			// (*) reply will already be on DB iff it has a creator who knows
@@ -143,18 +144,16 @@ public class DataLoader {
 			}
 			edge.setProperty(property, replies);	
 		}
-		scanner.close();
+		br.close();
 	}
 
 	// this method assumes that readPerson() and readPersonKnowsPerson
 	// have already been called
-	private void loadCommentsCreator() throws FileNotFoundException {
+	private void loadCommentsCreator() throws IOException {
 		String file = dataDir + commentCreatorFName + ".csv";
-		Scanner scanner = new Scanner(new File(file), charset);
-		scanner.useDelimiter("\n|\\|");
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		String line = br.readLine();
+		while ((line = br.readLine()) != null) {
 			String[] fields = line.split("\\|");
 
 			// if the creator is not already in DB then there is no point
@@ -165,7 +164,7 @@ public class DataLoader {
 			Long commentID = Long.parseLong(fields[0]);
 			commentCreator.put(commentID, personID);			
 		}
-		scanner.close();
+		br.close();
 	}
 
 
@@ -393,12 +392,11 @@ public class DataLoader {
 		scanner.close();
 	}
 	
-	private void loadForumMember() throws FileNotFoundException {
-		File file = new File(dataDir + forumMemberFName + ".csv");
-		Scanner scanner = new Scanner(file, charset);
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {			
-			String line = scanner.nextLine();
+	private void loadForumMember() throws IOException {
+		File file = new File(dataDir + forumMemberFName + ".csv");			
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		String line = br.readLine();
+		while ((line = br.readLine()) != null) {
 			String[] fields = line.split("\\|");
 			Long idForum = Long.parseLong(fields[0]);
 			Long idMember = Long.parseLong(fields[1]);			
@@ -416,7 +414,7 @@ public class DataLoader {
 				tag.addEdge(e);
 				edges.put(e, e);				
 			}			
-		}		
-		scanner.close();		
+		}
+		br.close();
 	}
 }
