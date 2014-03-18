@@ -15,8 +15,8 @@ import sigmod14.mem.Database.RelTypes;
 public class DataLoader {
 	public static final DataLoader INSTANCE = new DataLoader();
 	
-//	private static final String charset = "ISO-8859-1";
-	private static final String charset = "UTF-8";
+	private static final String charset = "ISO-8859-1";
+//	private static final String charset = "UTF-8";
 	public static final SimpleDateFormat sdf =
 			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 	
@@ -46,7 +46,7 @@ public class DataLoader {
 	private HashMap<Long,Long> commentCreator;
 	private HashMap<Long,Long> orgPlace;
 	private HashMap<Long,Long> placeLocatedAtPlace;
-	private HashMap<String,Long> namePlaces;
+	private HashMap<String,String> namePlaces;
 	private HashMap<Edge,Edge> edges;
 	
 	private DataLoader() {
@@ -92,8 +92,8 @@ public class DataLoader {
 //		orgPlace.clear();	// TODO fix this
 		
 		// data used for query4
-//		loadForumTag();
-//		loadForumMember();
+		loadForumTag();
+		loadForumMember();
 	}
 	
 	private void loadCommentReplyTo() throws FileNotFoundException {
@@ -274,7 +274,12 @@ public class DataLoader {
 			Long idPlace = Long.parseLong(fields[0]);
 			Node place = new Node(idPlace, NodeTypes.PLACE);
 			places.put(idPlace, place);
-			namePlaces.put(fields[1], idPlace);
+			if (!namePlaces.containsKey(fields[1])) {
+				namePlaces.put(fields[1], String.valueOf(idPlace));
+			} else { 
+				namePlaces.put(fields[1], 
+							   namePlaces.get(fields[1]) + " " + idPlace);
+			}	
 		}
 		scanner.close();
 	}

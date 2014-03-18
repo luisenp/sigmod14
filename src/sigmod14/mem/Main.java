@@ -10,7 +10,7 @@ public class Main {
 	public static void main(String[] args) {
 		DataLoader loader = DataLoader.INSTANCE;
 		QueryHandler qHandler = QueryHandler.INSTANCE;		
-		loader.setDataDirectory("data/outputDir-10k");
+		loader.setDataDirectory("data/outputDir-1k");
 		
 		try {
 			long time = System.currentTimeMillis();
@@ -29,8 +29,8 @@ public class Main {
 		
 		try {
 			Scanner scanner = 
-				new Scanner(new File("data/queries/10k-queries.txt"), 
-						    "UTF-8");
+				new Scanner(new File("data/queries/1k-queries.txt"), 
+						    "ISO-8859-1");
 			while (scanner.hasNextLine()) {
 				String line = scanner.nextLine();
 				String queryType = line.substring(0, 6);
@@ -51,7 +51,6 @@ public class Main {
 				} else if (queryType.equals("query3")) {
 					int k = Integer.parseInt(params[0]);
 					int hops = Integer.parseInt(params[1]);
-					System.out.println(k + " " + hops + " " + params[2]);
 					System.out.println(qHandler.query3(k, hops, params[2]));
 				} else if (queryType.equals("query4")) {
 					int k = Integer.parseInt(params[0]);

@@ -17,7 +17,7 @@ public class QueryHandler {
 	private HashMap<Long,Node> persons;
 	private HashMap<Long,Node> tags;
 	private HashMap<Long,Long> placeLocatedAtPlace;
-	private HashMap<String,Long> namePlaces;
+	private HashMap<String,String> namePlaces;
 		
 	private class TagComparator implements Comparator<Long> {
 		private Date date;
@@ -292,21 +292,21 @@ public class QueryHandler {
 	
 	public String query3(int k, int hops, String placeName) {
 		// finding all persons at placeName
-		Long placeID = namePlaces.get(placeName);
+		String placeIDs[] = namePlaces.get(placeName).split(" ");
 		HashSet<Long> personsAtPlace = new HashSet<Long> ();
-		for (Long personID : persons.keySet()) {
-			if (personIsLocatedAt(personID, placeID)) 
-				personsAtPlace.add(personID);
+		for (String s: placeIDs) {
+			Long placeID = Long.parseLong(s);
+			for (Long personID : persons.keySet()) {
+				if (personIsLocatedAt(personID, placeID)) 
+					personsAtPlace.add(personID);
+			}
 		}
-		
-		int cnt = 0;	//TODO debug
 		
 		// computing similarities between all persons at place less than 
 		// hops + 1 steps away
 		PriorityQueue<PersonPair> pq = 
 			new PriorityQueue<PersonPair>(k + 1, new PersonPairComparator()); 
 		for (Long idP1 : personsAtPlace) {
-			System.out.println(cnt++);	// TODO debug
 			Node p1 = persons.get(idP1);
 			LinkedList<Node> queue = new LinkedList<Node>();
 			LinkedList<Integer> dist = new LinkedList<Integer>();

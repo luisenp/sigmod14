@@ -33,7 +33,7 @@ public class Database {
 	private HashMap<Long,Long> orgPlace;
 	private HashMap<Long,Long> placeLocatedAtPlace;
 	private HashMap<Edge,Edge> edges;
-	private HashMap<String,Long> namePlaces;
+	private HashMap<String,String> namePlaces;
 	private HashMap<Long,Node> forums;
 	
 	// private constructor to instantiate public INSTANCE
@@ -46,7 +46,7 @@ public class Database {
 		commentCreator = new HashMap<Long,Long> (10000000);
 		orgPlace = new HashMap<Long,Long> (10000);
 		placeLocatedAtPlace = new HashMap<Long,Long> (10000);
-		namePlaces = new HashMap<String,Long> (10000);
+		namePlaces = new HashMap<String,String> (10000);
 		
 		edges = new HashMap<Edge,Edge> (500000);
 	}
@@ -91,7 +91,7 @@ public class Database {
 		return edges;
 	}
 	
-	public HashMap<String,Long> getNamePlaces() {
+	public HashMap<String,String> getNamePlaces() {
 		return namePlaces;
 	}
 	
