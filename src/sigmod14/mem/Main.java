@@ -9,7 +9,7 @@ public class Main {
 		DataLoader loader = DataLoader.INSTANCE;
 		QueryHandler qHandler = QueryHandler.INSTANCE;
 		
-		loader.setDataDirectory("data/outputDir-1k");
+		loader.setDataDirectory("data/outputDir-10k");
 		try {
 			long time = System.currentTimeMillis();
 			loader.loadData();
@@ -72,17 +72,17 @@ public class Main {
 		
 		// query4 test
 		// 1k dataset
-		qHandler.query4(3, "Bill_Clinton");
-		qHandler.query4(4, "Napoleon");
-		qHandler.query4(3, "Chiang_Kai-shek");
-		qHandler.query4(3, "Charles_Darwin");
-		qHandler.query4(5, "Ronald_Reagan");
-		qHandler.query4(3, "Aristotle");
-		qHandler.query4(3, "George_W._Bush");
-		qHandler.query4(7, "Tony_Blair");
-		qHandler.query4(3, "William_Shakespeare");
-		qHandler.query4(4, "Augustine_of_Hippo");
+//		qHandler.query4(3, "Bill_Clinton");
+//		qHandler.query4(4, "Napoleon");
+//		qHandler.query4(3, "Chiang_Kai-shek");
+//		qHandler.query4(3, "Charles_Darwin");
+//		qHandler.query4(5, "Ronald_Reagan");
+//		qHandler.query4(3, "Aristotle");
+//		qHandler.query4(3, "George_W._Bush");
+//		qHandler.query4(7, "Tony_Blair");
+//		qHandler.query4(3, "William_Shakespeare");
+//		qHandler.query4(4, "Augustine_of_Hippo");
 		// 10k dataset
-//		qHandler.query4(4, "Franklin_D._Roosevelt");
+		qHandler.query4(4, "Franklin_D._Roosevelt");
 	}
 }

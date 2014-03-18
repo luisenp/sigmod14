@@ -152,12 +152,12 @@ public class QueryHandler {
 		long den;
 		
 		Centrality(long num, long den) {
-			this.num = num;
-			this.den = den;
 			if (den == 0) {	// centrality = 0 if den = 0
 				num = 0;
 				den = 1;
 			}
+			this.num = num;
+			this.den = den;
 		}
 		
 		int compare(Centrality r) {
@@ -189,14 +189,15 @@ public class QueryHandler {
 	}
 	
 	private class 
-	PersonCentralityComparator implements Comparator<PersonCentrality> {
+	PersonCentralityComparator implements Comparator<PersonCentrality> {		
 		public int compare(PersonCentrality pc1, PersonCentrality pc2) {
-			if (pc1.centrality == pc2.centrality) {
+			int cmp = pc1.centrality.compare(pc2.centrality); 
+			if (cmp == 0) {
 				if (pc1.person.getId() > pc2.person.getId()) return -1;
 				if (pc1.person.getId() < pc2.person.getId()) return 1;
 				return 0;
 			}
-			return pc1.centrality.compare(pc2.centrality);
+			return cmp;
 		}
 		
 	}
@@ -334,7 +335,7 @@ public class QueryHandler {
 		return topPairs;
 	}
 
-	public LinkedList<Long> query4(int k, String tagName) {
+	public String query4(int k, String tagName) {
 		// finding the tag with the given name
 		Node tag = null;
 		for (Long idTag : tags.keySet()) {
@@ -358,12 +359,14 @@ public class QueryHandler {
 		}
 		int n1 = vertices.size() - 1;
 
-//		System.out.println(tag.getId() + " " + vertices.size());	// TODO debug
+		System.out.println(tag.getId() + " " + vertices.size());	// TODO debug
 		// from each node p on the graph, do a BFS and compute centrality
 		PriorityQueue<PersonCentrality> pq =
 			new PriorityQueue<PersonCentrality> 
 				(k + 1, new PersonCentralityComparator());
+		int cnt = 0;	// TODO debug
 		for (Node p : vertices){
+			cnt++; System.out.println(cnt);	// TODO debug
 			LinkedList<Node> queue = new LinkedList<Node> ();
 			LinkedList<Integer> dist = new LinkedList<Integer> ();
 			HashSet<Node> visited = new HashSet<Node> ();
@@ -391,14 +394,13 @@ public class QueryHandler {
 			if (pq.size() > k) pq.poll();
 		}
 
-		LinkedList<Long> topPersons = new LinkedList<Long> ();
+		String queryAns = "";
 		while (!pq.isEmpty()) {
 			PersonCentrality pc = pq.poll();
-			System.out.print(pc + " ");
-			topPersons.addFirst(pc.person.getId());
+			queryAns = String.valueOf(pc.person.getId()) + " " + queryAns;
 		}
-		System.out.println(topPersons);
-		return topPersons;
+		System.out.println(queryAns);
+		return queryAns;
 	}
 	
 }

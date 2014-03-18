@@ -6,7 +6,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Scanner;
 
 import sigmod14.mem.Database.EdgeTypes;
@@ -16,8 +15,8 @@ import sigmod14.mem.Database.RelTypes;
 public class DataLoader {
 	public static final DataLoader INSTANCE = new DataLoader();
 	
-	private static final String charset = "ISO-8859-1";
-//	private static final String charset = "UTF-8";
+//	private static final String charset = "ISO-8859-1";
+	private static final String charset = "UTF-8";
 	public static final SimpleDateFormat sdf =
 			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 	
@@ -79,8 +78,6 @@ public class DataLoader {
 		// no need to store comments anymore
 		commentCreator = null;
 		Database.INSTANCE.clearCommentCreator(); 
-
-		System.out.println("Read all comments"); //TODO DEBUG
 		
 		// data used for query2
 		loadTags();
@@ -370,11 +367,6 @@ public class DataLoader {
 		scanner.close();
 	}
 	
-	private static HashSet<Long> forumBC = new HashSet<Long>(); //TODO debug 
-	private static HashSet<Long> personsBC = new HashSet<Long>(); //TODO debug
-	private static HashSet<Edge> edgeBC = new HashSet<Edge>(); //TODO debug
-	private static HashSet<Long> forumBC2 = new HashSet<Long>(); //TODO debug
-	
 	private void loadForumTag() throws FileNotFoundException {
 		File file = new File(dataDir + forumTagFName + ".csv");
 		Scanner scanner = new Scanner(file, charset);
@@ -388,19 +380,7 @@ public class DataLoader {
 				forums.put(idForum, new Node(idForum, NodeTypes.FORUM));
 			Node forum = forums.get(idForum);
 			Node tag = tags.get(idTag);
-			forum.createEdge(tag, EdgeTypes.DIRECTED, RelTypes.INTERESTED);
-			
-			// TODO Debug
-			try {
-				if (tag.getPropertyValue("name").equals("Bill_Clinton")) {
-					forumBC.add(idForum);
-				}
-			} catch (NotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			
+			forum.createEdge(tag, EdgeTypes.DIRECTED, RelTypes.INTERESTED);			
 		}
 		scanner.close();
 	}
@@ -426,25 +406,9 @@ public class DataLoader {
 								  RelTypes.MEMBERFORUMTAG);
 				if (edges.containsKey(e)) continue;
 				tag.addEdge(e);
-				edges.put(e, e);
-				
-				//TODO debug
-				if (forumBC.contains(idForum))	
-					edgeBC.add(e);
-				if (tag.getId() == 2779)
-					forumBC2.add(idForum);
-			}
-			
-			//TODO debug
-			if (forumBC.contains(idForum)) {
-				personsBC.add(idMember);
-			}
-		}
-		//TODO debug
-		System.out.println(forumBC.size() + " " + forumBC2.size());
-		System.out.println(personsBC.size());
-		System.out.println(edgeBC.size());
-		
+				edges.put(e, e);				
+			}			
+		}		
 		scanner.close();
 		
 	}
