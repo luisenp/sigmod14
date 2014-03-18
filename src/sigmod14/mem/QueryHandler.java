@@ -273,7 +273,7 @@ public class QueryHandler {
 		return topTags;
 	}
 	
-	boolean personIsLocatedAt(long personID, long placeID) {
+	private boolean personIsLocatedAt(long personID, long placeID) {
 		Node person = persons.get(personID);
 		for (Edge edge : person.getIncident()) {
 			if (edge.getRelType() != RelTypes.LOCATEDAT) continue;
@@ -335,6 +335,24 @@ public class QueryHandler {
 		return topPairs;
 	}
 
+	// returns false if the maximum possible centrality with the 
+	// given parameters is guaranteed to be lower or equal than c. 
+	// returns true otherwise
+	//
+	// rp - current rp (reachable nodes from p)
+	// sp - current sp (sum geod. distances of reachable nodes)
+	// n - number of vertices on the graph
+	// d - minimum geod. distances of reamining nodes
+	// c- centrality to compare to
+	private 
+	boolean checkCentrality(long rp, long sp, long n, long d, Centrality c) {
+		long x = n - rp;
+		if (2*x*d <= d - 2*sp) return true;
+		Centrality maxC = new Centrality(n, sp + x*d);
+		if (maxC.compare(c) <= 0) return false;
+		return true;
+	}
+	
 	public String query4(int k, String tagName) {
 		// finding the tag with the given name
 		Node tag = null;
@@ -359,21 +377,18 @@ public class QueryHandler {
 		}
 		int n1 = vertices.size() - 1;
 
-		System.out.println(tag.getId() + " " + vertices.size());	// TODO debug
 		// from each node p on the graph, do a BFS and compute centrality
 		PriorityQueue<PersonCentrality> pq =
 			new PriorityQueue<PersonCentrality> 
 				(k + 1, new PersonCentralityComparator());
-		int cnt = 0;	// TODO debug
 		for (Node p : vertices){
-			cnt++; System.out.println(cnt);	// TODO debug
 			LinkedList<Node> queue = new LinkedList<Node> ();
 			LinkedList<Integer> dist = new LinkedList<Integer> ();
 			HashSet<Node> visited = new HashSet<Node> ();
 			queue.add(p);
 			dist.add(0);
-			int rp = 0;
-			long sp = 0;
+			long rp = -1, sp = 0;
+			// do a BFS to compute relevant quantities rp, sp
 			while (!queue.isEmpty()) {
 				Node p2 = queue.removeFirst();
 				int d = dist.removeFirst();
@@ -383,14 +398,19 @@ public class QueryHandler {
 				visited.add(p2);
 				rp++;
 				sp += d;
+				if (!pq.isEmpty()
+					&& !checkCentrality(rp, sp, n1, d, pq.peek().centrality)) {
+					// stops if max. possible centrality is lower than the
+					// worst one in the priority queue
+					break;
+				}
 				for (Edge edge : p2.getIncident()) {
 					if (edge.getRelType() != RelTypes.KNOWS) continue;
 					queue.add(edge.getOtherNode(p2));
 					dist.add(d + 1);
 				}
 			}
-			long rp1 = rp - 1;
-			pq.add(new PersonCentrality(p, new Centrality(rp1*rp1, n1*sp)));
+			pq.add(new PersonCentrality(p, new Centrality(rp*rp, n1*sp)));
 			if (pq.size() > k) pq.poll();
 		}
 
