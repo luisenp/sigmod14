@@ -8,9 +8,11 @@ import java.util.Scanner;
 public class Main {
 	// TODO The singleton design seems ugly. Consider change later
 	public static void main(String[] args) {
+		String charset = "UTF-8";
 		DataLoader loader = DataLoader.INSTANCE;
+		loader.setCharset(charset);
 		QueryHandler qHandler = QueryHandler.INSTANCE;		
-		loader.setDataDirectory("data/outputDir-1k");
+		loader.setDataDirectory("data/outputDir-10k");
 		
 		try {
 			long time = System.currentTimeMillis();
@@ -29,8 +31,8 @@ public class Main {
 		
 		try {
 			Scanner scanner = 
-				new Scanner(new File("data/queries/1k-queries.txt"), 
-						    "ISO-8859-1");
+				new Scanner(new File("data/queries/10k-queries.txt"), 
+						    charset);
 			while (scanner.hasNextLine()) {
 				String line = scanner.nextLine();
 				String queryType = line.substring(0, 6);
@@ -49,9 +51,9 @@ public class Main {
 						e.printStackTrace();
 					}
 				} else if (queryType.equals("query3")) {
-					int k = Integer.parseInt(params[0]);
-					int hops = Integer.parseInt(params[1]);
-					System.out.println(qHandler.query3(k, hops, params[2]));
+//					int k = Integer.parseInt(params[0]);
+//					int hops = Integer.parseInt(params[1]);
+//					System.out.println(qHandler.query3(k, hops, params[2]));
 				} else if (queryType.equals("query4")) {
 					int k = Integer.parseInt(params[0]);
 					System.out.println(qHandler.query4(k, params[1]));

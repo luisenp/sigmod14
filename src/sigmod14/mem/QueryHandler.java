@@ -248,7 +248,7 @@ public class QueryHandler {
 	}
 	
 	public String query2(int k, String d) throws ParseException {
-		Date date = DataLoader.sdf.parse(d + ":00:00:00");
+		Date date = DataLoader.INSTANCE.sdf.parse(d + ":00:00:00");
 		
 		// priority queue according to the tag range
 		PriorityQueue<Long> pq = 

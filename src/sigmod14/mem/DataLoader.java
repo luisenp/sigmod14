@@ -15,9 +15,8 @@ import sigmod14.mem.Database.RelTypes;
 public class DataLoader {
 	public static final DataLoader INSTANCE = new DataLoader();
 	
-	private static final String charset = "ISO-8859-1";
-//	private static final String charset = "UTF-8";
-	public static final SimpleDateFormat sdf =
+	private String charset = "UTF-8";
+	public final SimpleDateFormat sdf =
 			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 	
 	// file names 
@@ -63,6 +62,10 @@ public class DataLoader {
 		edges = Database.INSTANCE.getEdges();
 	}
 
+	public void setCharset(String charset) {
+		this.charset = charset;
+	}
+	
 	public void setDataDirectory(String dir) {
 		this.dataDir = dir + "/";
 	}
@@ -414,7 +417,6 @@ public class DataLoader {
 				edges.put(e, e);				
 			}			
 		}		
-		scanner.close();
-		
+		scanner.close();		
 	}
 }
