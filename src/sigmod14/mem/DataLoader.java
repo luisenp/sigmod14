@@ -250,6 +250,7 @@ public class DataLoader {
 			Edge edge = tag.createEdge(person, 
 									   EdgeTypes.DIRECTED, 
 									   RelTypes.INTERESTED);
+			person.addEdge(edge);
 			edges.put(edge, edge);
 			
 		}

@@ -14,12 +14,17 @@ public class QueryHandler {
 	public static final QueryHandler INSTANCE = new QueryHandler();
 
 	private class PersonPair {
-		Long person1;
-		Long person2;
+		Node person1;
+		Node person2;
 		
-		PersonPair(Long person1, Long person2) {
+		PersonPair(Node person1, Node person2) {
 			this.person1 = person1;
 			this.person2 = person2;
+		}
+		
+		public String toString() {
+			String ret = person1.getId() + "|" + person2.getId();
+			return ret;
 		}
 	}
 	
@@ -99,24 +104,52 @@ public class QueryHandler {
 		}
 	}
 
-	private class PersonPairComparator implements Comparator {
-		public int compare(Object o1, Object o2) {
-			return 0;
+	private class PersonPairComparator implements Comparator<PersonPair> {
+		private int getScorePair(PersonPair pp) {
+			int score = 0;
+			Node person1 = pp.person1;
+			Node person2 = pp.person2;
+			for (Edge e1 : person1.getIncident()) {
+				if (e1.getRelType() != RelTypes.INTERESTED) continue;
+				Node tag = e1.getOut();
+				for (Edge e2 : tag.getIncident()) {
+					if (e2.getIn().equals(person2)) {
+						score++;
+						break;
+					}
+				}
+			}
+			return score;
 		}
-		
+		public int compare(PersonPair pp1, PersonPair pp2) {
+			int score1 = getScorePair(pp1);
+			int score2 = getScorePair(pp2);
+			if (score1 == score2) {
+				long id11 = pp1.person1.getId();
+				long id12 = pp1.person2.getId();
+				long id21 = pp2.person1.getId();
+				long id22 = pp2.person2.getId();
+				if (id11 < id21) return 1;
+				if (id11 > id21) return -1;
+				if (id12 < id22) return 1;
+				if (id12 > id22) return -1;
+				return 0;
+			}
+			return score1 < score2 ? -1 : 1;
+		}
 	}
 	
 	// pointers to Database storage
 	private HashMap<Long,Node> persons;
 	private HashMap<Long,Node> tags;
-	private HashMap<Long,Node> places;
+//	private HashMap<Long,Node> places;
 	private HashMap<Long,Long> placeLocatedAtPlace;
 	private HashMap<String,Long> namePlaces;
 	
 	private QueryHandler() {
 		persons = Database.INSTANCE.getPersons();
 		tags = Database.INSTANCE.getTags();
-		places = Database.INSTANCE.getPlaces();
+//		places = Database.INSTANCE.getPlaces();
 		placeLocatedAtPlace = Database.INSTANCE.getPlaceLocatedAtPlace();
 		namePlaces = Database.INSTANCE.getNamePlaces();
 	}
@@ -161,7 +194,7 @@ public class QueryHandler {
 		Date date = DataLoader.sdf.parse(d + ":00:00:00");
 		
 		PriorityQueue<Long> sorted = 
-			new PriorityQueue<Long> (k, new TagComparator(date));
+			new PriorityQueue<Long> (k + 1, new TagComparator(date));
 		for (Long tagID : tags.keySet()) {
 			sorted.add(tagID);
 			if (sorted.size() > k) sorted.poll();
@@ -196,15 +229,17 @@ public class QueryHandler {
 		return false;
 	}	
 	
-	public LinkedList<Long> query3(int k, int hops, String placeName) {
+	public LinkedList<String> query3(int k, int hops, String placeName) {
 		Long placeID = namePlaces.get(placeName);
-		HashSet<Long> personsHere = new HashSet<Long> ();
+		HashSet<Long> personsAtPlace = new HashSet<Long> ();
 		for (Long personID : persons.keySet()) {
 			if (personIsLocatedAt(personID, placeID)) 
-				personsHere.add(personID);
+				personsAtPlace.add(personID);
 		}
-
-		for (Long idP1 : personsHere) {
+		
+		PriorityQueue<PersonPair> pq = 
+			new PriorityQueue<PersonPair>(k + 1, new PersonPairComparator()); 
+		for (Long idP1 : personsAtPlace) {
 			Node p1 = persons.get(idP1);
 			LinkedList<Node> queue = new LinkedList<Node>();
 			LinkedList<Integer> dist = new LinkedList<Integer>();
@@ -215,20 +250,28 @@ public class QueryHandler {
 				Node p2 = queue.removeFirst();
 				int d = dist.removeFirst();
 				if (visited.contains(p2.getId())) continue;
+				visited.add(p2.getId());
 				if (p1.getId() != p2.getId() && p1.getId() < p2.getId()
-						&& personsHere.contains(p2.getId())) {
+					&& personsAtPlace.contains(p2.getId())) {
+					// get the score and add to the queue
+					pq.add(new PersonPair(p1, p2));
+					if (pq.size() > k) pq.poll();
 				}
-				if (d == hops) continue;;
+				if (d == hops) continue;
 				for (Edge edge : p2.getIncident()) {
 					if (edge.getRelType() != RelTypes.KNOWS) continue;
 					queue.add(edge.getOtherNode(p2));
 					dist.add(d + 1);
 				}
-			}
-			 
+			}			 
 		}
-		
-		return null;
+
+		LinkedList<String> topPairs = new LinkedList<String> ();
+		while (!pq.isEmpty()) {
+			topPairs.addFirst(pq.poll().toString());
+		}
+		System.out.println(topPairs);
+		return topPairs;
 	}
 
 }
