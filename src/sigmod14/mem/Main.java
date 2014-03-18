@@ -26,32 +26,32 @@ public class Main {
 		}
 
 		// query1 test
-		System.out.println(qHandler.query1(576, 400, -1) + " 3");
-		System.out.println(qHandler.query1(58, 402, 0) + " 3");
-		System.out.println(qHandler.query1(266, 106, -1) + " 3");
-		System.out.println(qHandler.query1(313, 523, -1) + " -1");
-		System.out.println(qHandler.query1(858, 587, 1) + " 4");
-		System.out.println(qHandler.query1(155, 355, -1) + " 3");
-		System.out.println(qHandler.query1(947, 771, -1) + " 2");
-		System.out.println(qHandler.query1(105, 608, 3) + " -1");
-		System.out.println(qHandler.query1(128, 751, -1) + " 3");
-		System.out.println(qHandler.query1(814, 641, 0) + " 3");
+//		System.out.println(qHandler.query1(576, 400, -1) + " 3");
+//		System.out.println(qHandler.query1(58, 402, 0) + " 3");
+//		System.out.println(qHandler.query1(266, 106, -1) + " 3");
+//		System.out.println(qHandler.query1(313, 523, -1) + " -1");
+//		System.out.println(qHandler.query1(858, 587, 1) + " 4");
+//		System.out.println(qHandler.query1(155, 355, -1) + " 3");
+//		System.out.println(qHandler.query1(947, 771, -1) + " 2");
+//		System.out.println(qHandler.query1(105, 608, 3) + " -1");
+//		System.out.println(qHandler.query1(128, 751, -1) + " 3");
+//		System.out.println(qHandler.query1(814, 641, 0) + " 3");
 
 		// query2 test
-		try {
-			System.out.println(qHandler.query2(3, "1980-02-01"));
-			System.out.println(qHandler.query2(4, "1981-03-10"));
-			System.out.println(qHandler.query2(3, "1982-03-29"));
-			System.out.println(qHandler.query2(3, "1983-05-09"));
-			System.out.println(qHandler.query2(5, "1984-07-02"));
-			System.out.println(qHandler.query2(3, "1985-05-31"));
-			System.out.println(qHandler.query2(3, "1986-06-14"));
-			System.out.println(qHandler.query2(7, "1987-06-24"));
-			System.out.println(qHandler.query2(3, "1988-11-10"));
-			System.out.println(qHandler.query2(4, "1990-01-25"));
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			System.out.println(qHandler.query2(3, "1980-02-01"));
+//			System.out.println(qHandler.query2(4, "1981-03-10"));
+//			System.out.println(qHandler.query2(3, "1982-03-29"));
+//			System.out.println(qHandler.query2(3, "1983-05-09"));
+//			System.out.println(qHandler.query2(5, "1984-07-02"));
+//			System.out.println(qHandler.query2(3, "1985-05-31"));
+//			System.out.println(qHandler.query2(3, "1986-06-14"));
+//			System.out.println(qHandler.query2(7, "1987-06-24"));
+//			System.out.println(qHandler.query2(3, "1988-11-10"));
+//			System.out.println(qHandler.query2(4, "1990-01-25"));
+//		} catch (ParseException e) {
+//			e.printStackTrace();
+//		}
 		
 		//query3 test
 //		qHandler.query3(3, 2, "Asia");
@@ -65,9 +65,11 @@ public class Main {
 //		qHandler.query3(3, 2, "Luoyang");
 //		qHandler.query3(4, 3, "Taiwan");
 		// 10k dataset
-		qHandler.query3(3, 2, "Asia");
-		qHandler.query3(4, 3, "Dolgoprudny");
-		qHandler.query3(3, 2, "Yongkang_District");
+//		qHandler.query3(3, 2, "Asia");
+//		qHandler.query3(4, 3, "Dolgoprudny");
+//		qHandler.query3(3, 2, "Yongkang_District");
+		
+		qHandler.query4(4, "Franklin_D._Roosevelt");
 	}
 
 }

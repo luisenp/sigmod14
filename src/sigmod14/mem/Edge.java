@@ -18,7 +18,6 @@ public class Edge {
 		this.out = out;
 		this.edgeType = edgeType;
 		this.relType = relType;
-		this.properties = new HashMap<String,Object>();
 	}
 	
 	public EdgeTypes getEdgeType() {
@@ -35,6 +34,7 @@ public class Edge {
 	}
 
 	public void setProperty(String property, Object value) {
+		if (properties == null) properties = new HashMap<String, Object>();
 		properties.put(property, value);
 	}
 

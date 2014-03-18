@@ -2,11 +2,9 @@ package sigmod14.mem;
 
 import java.util.HashMap;
 
-//TODO I think the distinction between DIRECTED and UNDIRECTED is useless
 public class Database {
 	public static final Database INSTANCE = new Database();
 	
-	// types
 	public static enum NodeTypes {
 		PERSON,
 		TAG,
@@ -22,7 +20,8 @@ public class Database {
 	public static enum RelTypes {
 		KNOWS,
 		INTERESTED,
-		LOCATEDAT
+		LOCATEDAT,
+		MEMBERFORUMTAG
 	}	
 		
 	// data storage
@@ -34,12 +33,14 @@ public class Database {
 	private HashMap<Long,Long> placeLocatedAtPlace;
 	private HashMap<Edge,Edge> edges;
 	private HashMap<String,Long> namePlaces;
+	private HashMap<Long,Node> forums;
 	
 	// private constructor to instantiate public INSTANCE
 	private Database() {
 		persons = new HashMap<Long,Node> (100000);
 		tags = new HashMap<Long,Node> (100000);
 		places = new HashMap<Long,Node> (10000);
+		forums = new HashMap<Long,Node> (10000);
 
 		commentCreator = new HashMap<Long,Long> (10000000);
 		orgPlace = new HashMap<Long,Long> (10000);
@@ -49,7 +50,8 @@ public class Database {
 		edges = new HashMap<Edge,Edge> (500000);
 	}
 	
-
+	// this method is used by DataLoader.loadCommentReplyTo() 
+	// to quickly find whether two persons know e/o
 	public Edge findUndirectedEdge(Node n1, Node n2, RelTypes relType) 
 			throws NotFoundException {
 		Node out = n1.getId() < n2.getId() ? n1 : n2;
@@ -90,5 +92,13 @@ public class Database {
 	
 	public HashMap<String,Long> getNamePlaces() {
 		return namePlaces;
+	}
+	
+	public HashMap<Long,Node> getForums() {
+		return forums;
+	}
+	
+	public void clearCommentCreator() {
+		commentCreator = null;
 	}
 }

@@ -42,6 +42,7 @@ public class DataLoader {
 	private HashMap<Long,Node> persons;
 	private HashMap<Long,Node> tags;
 	private HashMap<Long,Node> places;
+	private HashMap<Long,Node> forums;
 	private HashMap<Long,Long> commentCreator;
 	private HashMap<Long,Long> orgPlace;
 	private HashMap<Long,Long> placeLocatedAtPlace;
@@ -52,6 +53,7 @@ public class DataLoader {
 		persons = Database.INSTANCE.getPersons();
 		tags = Database.INSTANCE.getTags();
 		places = Database.INSTANCE.getPlaces();
+		forums = Database.INSTANCE.getForums();
 
 		commentCreator = Database.INSTANCE.getCommentCreator();
 		orgPlace = Database.INSTANCE.getOrgPlace();
@@ -73,7 +75,11 @@ public class DataLoader {
 		// data used for query1
 		loadCommentsCreator();
 		loadCommentReplyTo();			
-		commentCreator.clear();	// no need to store comments
+		// no need to store comments anymore
+		commentCreator = null;
+		Database.INSTANCE.clearCommentCreator(); 
+
+		System.out.println("Read all comments"); //TODO DEBUG
 		
 		// data used for query2
 		loadTags();
@@ -86,6 +92,10 @@ public class DataLoader {
 		loadPersonWorkStudy();
 		loadPlaceAtPlace();
 		orgPlace.clear();
+		
+		// data used for query4
+		loadForumTag();
+		loadForumMember();
 	}
 	
 	private void loadCommentReplyTo() throws FileNotFoundException {
@@ -117,7 +127,7 @@ public class DataLoader {
 									                        creatorRepliedTo, 
 												            RelTypes.KNOWS);
 			} catch (NotFoundException e) {
-				// no point in keeping this reply. creators must know e/other
+				// no point in keeping this reply, creators must know e/other
 				continue;
 			}
 			String property = 
@@ -135,7 +145,6 @@ public class DataLoader {
 		}
 		scanner.close();
 	}
-
 
 	// this method assumes that readPerson() and readPersonKnowsPerson
 	// have already been called
@@ -359,5 +368,44 @@ public class DataLoader {
 		}
 		scanner.close();
 	}
-
+	
+	private void loadForumTag() throws FileNotFoundException {
+		File file = new File(dataDir + forumTagFName + ".csv");
+		Scanner scanner = new Scanner(file, charset);
+		scanner.nextLine();
+		while (scanner.hasNextLine()) {			
+			String line = scanner.nextLine();
+			String[] fields = line.split("\\|");
+			Long idForum = Long.parseLong(fields[0]);
+			Long idTag = Long.parseLong(fields[1]);
+			Node forum = new Node(idForum, NodeTypes.FORUM);
+			Node tag = tags.get(idTag);
+			forums.put(idForum, forum);
+			forum.createEdge(tag, EdgeTypes.DIRECTED, RelTypes.INTERESTED);
+		}
+		scanner.close();
+	}
+	
+	private void loadForumMember() throws FileNotFoundException {
+		File file = new File(dataDir + forumMemberFName + ".csv");
+		Scanner scanner = new Scanner(file, charset);
+		scanner.nextLine();
+		while (scanner.hasNextLine()) {			
+			String line = scanner.nextLine();
+			String[] fields = line.split("\\|");
+			Long idForum = Long.parseLong(fields[0]);
+			Long idMember = Long.parseLong(fields[1]);
+			if (!forums.containsKey(idForum)) continue;
+			Node forum = forums.get(idForum);
+			Node person = persons.get(idMember);
+			for (Edge edge : forum.getIncident()) {
+				Node tag = edge.getIn();
+				tag.createEdge(person, 
+							   EdgeTypes.DIRECTED, 
+							   RelTypes.MEMBERFORUMTAG);
+			}
+		}
+		scanner.close();
+		
+	}
 }

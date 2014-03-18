@@ -13,6 +13,12 @@ import sigmod14.mem.Database.RelTypes;
 public class QueryHandler {
 	public static final QueryHandler INSTANCE = new QueryHandler();
 
+	// pointers to Database storage
+	private HashMap<Long,Node> persons;
+	private HashMap<Long,Node> tags;
+	private HashMap<Long,Long> placeLocatedAtPlace;
+	private HashMap<String,Long> namePlaces;
+	
 	private class PersonPair {
 		Node person1;
 		Node person2;
@@ -137,19 +143,11 @@ public class QueryHandler {
 			}
 			return score1 < score2 ? -1 : 1;
 		}
-	}
-	
-	// pointers to Database storage
-	private HashMap<Long,Node> persons;
-	private HashMap<Long,Node> tags;
-//	private HashMap<Long,Node> places;
-	private HashMap<Long,Long> placeLocatedAtPlace;
-	private HashMap<String,Long> namePlaces;
+	}	
 	
 	private QueryHandler() {
 		persons = Database.INSTANCE.getPersons();
 		tags = Database.INSTANCE.getTags();
-//		places = Database.INSTANCE.getPlaces();
 		placeLocatedAtPlace = Database.INSTANCE.getPlaceLocatedAtPlace();
 		namePlaces = Database.INSTANCE.getNamePlaces();
 	}
@@ -274,4 +272,26 @@ public class QueryHandler {
 		return topPairs;
 	}
 
+	public void query4(int k, String tagName) {
+		Node tag = null;
+		for (Node node : tags.values()) {
+			try {
+				if (node.getPropertyValue("name").equals(tagName)) {
+					tag = node;
+				}
+			} catch (NotFoundException e) {
+				System.err.println("ERROR: Tag should have a name");
+				e.printStackTrace();
+				System.exit(-1);
+			}
+		}
+		
+		HashSet<Node> vertices = new HashSet<Node>();
+		for (Edge edge : tag.getIncident()) {
+			if (edge.getRelType() != RelTypes.MEMBERFORUMTAG) continue;
+			vertices.add(edge.getIn());
+		}
+		System.out.println(vertices.size());
+	}
+	
 }
