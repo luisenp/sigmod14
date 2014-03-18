@@ -15,8 +15,8 @@ import sigmod14.mem.Database.RelTypes;
 public class DataLoader {
 	public static final DataLoader INSTANCE = new DataLoader();
 	
-//	private static final String charset = "ISO-8859-1";
-	private static final String charset = "UTF-8";
+	private static final String charset = "ISO-8859-1";
+//	private static final String charset = "UTF-8";
 	public static final SimpleDateFormat sdf =
 			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 	
