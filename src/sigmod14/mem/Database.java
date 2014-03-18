@@ -21,6 +21,7 @@ public class Database {
 		KNOWS,
 		INTERESTED,
 		LOCATEDAT,
+		FORUMTAG,
 		MEMBERFORUMTAG
 	}	
 		

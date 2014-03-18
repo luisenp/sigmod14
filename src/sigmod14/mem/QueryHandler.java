@@ -121,7 +121,8 @@ public class QueryHandler {
 				if (e1.getRelType() != RelTypes.INTERESTED) continue;
 				Node tag = e1.getOut();
 				for (Edge e2 : tag.getIncident()) {
-					if (e2.getIn().equals(person2)) {
+					if (e2.getRelType() == RelTypes.INTERESTED
+							&& e2.getIn().equals(person2)) {
 						similarity++;
 						break;
 					}
@@ -211,9 +212,9 @@ public class QueryHandler {
 	
 	// does a BFS on the induced graph, starting from p1 and counting the
 	// steps to reach p2
-	public int query1(long p1, long p2, int x) {
+	public String query1(long p1, long p2, int x) {
 		Node goal = persons.get(p2);
-		if (goal == null) return -1;
+		if (goal == null) return "-1";
 		LinkedList<Node> queue = new LinkedList<Node> ();
 		LinkedList<Integer> dist = new LinkedList<Integer> ();
 		HashSet<Node> visited = new HashSet<Node> ();
@@ -223,7 +224,7 @@ public class QueryHandler {
 			Node person = queue.removeFirst();			
 			int d = dist.removeFirst();
 			if (visited.contains(person)) continue;
-			if (person.equals(goal)) return d;
+			if (person.equals(goal)) return String.valueOf(d);
 			visited.add(person);
 			for (Edge edge: person.getIncident()) {
 				if (edge.getRelType() != RelTypes.KNOWS) continue;
@@ -243,11 +244,10 @@ public class QueryHandler {
 				}
 			}
 		}
-		return -1;
+		return "-1";
 	}
 	
-	public LinkedList<String> query2(int k, String d) throws ParseException {
-		LinkedList<String> topTags = new LinkedList<String> ();
+	public String query2(int k, String d) throws ParseException {
 		Date date = DataLoader.sdf.parse(d + ":00:00:00");
 		
 		// priority queue according to the tag range
@@ -259,10 +259,12 @@ public class QueryHandler {
 		} 
 		
 		// returning tag names in the correct order
+		String topTags = "";
 		while (!pq.isEmpty()) {
-			try {
-				topTags.addFirst((String) tags.get(pq.poll())
-											  .getPropertyValue("name"));
+			try {				
+				String tagName = (String) tags.get(pq.poll())
+					                          .getPropertyValue("name");
+				topTags = tagName + " " + topTags;
 			} catch (NotFoundException e) {
 				System.err.println("ERROR: All tags should have a name");
 				e.printStackTrace();
@@ -288,7 +290,7 @@ public class QueryHandler {
 		return false;
 	}	
 	
-	public LinkedList<String> query3(int k, int hops, String placeName) {
+	public String query3(int k, int hops, String placeName) {
 		// finding all persons at placeName
 		Long placeID = namePlaces.get(placeName);
 		HashSet<Long> personsAtPlace = new HashSet<Long> ();
@@ -297,11 +299,14 @@ public class QueryHandler {
 				personsAtPlace.add(personID);
 		}
 		
+		int cnt = 0;	//TODO debug
+		
 		// computing similarities between all persons at place less than 
 		// hops + 1 steps away
 		PriorityQueue<PersonPair> pq = 
 			new PriorityQueue<PersonPair>(k + 1, new PersonPairComparator()); 
 		for (Long idP1 : personsAtPlace) {
+			System.out.println(cnt++);	// TODO debug
 			Node p1 = persons.get(idP1);
 			LinkedList<Node> queue = new LinkedList<Node>();
 			LinkedList<Integer> dist = new LinkedList<Integer>();
@@ -330,8 +335,10 @@ public class QueryHandler {
 			}
 		}
 
-		LinkedList<String> topPairs = new LinkedList<String> ();
-		while (!pq.isEmpty()) topPairs.addFirst(pq.poll().toString());
+		String topPairs = "";
+		while (!pq.isEmpty()) 
+			topPairs = pq.poll().toString() + " " + topPairs;
+		
 		return topPairs;
 	}
 
@@ -419,7 +426,6 @@ public class QueryHandler {
 			PersonCentrality pc = pq.poll();
 			queryAns = String.valueOf(pc.person.getId()) + " " + queryAns;
 		}
-		System.out.println(queryAns);
 		return queryAns;
 	}
 	

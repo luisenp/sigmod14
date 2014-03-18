@@ -15,8 +15,8 @@ import sigmod14.mem.Database.RelTypes;
 public class DataLoader {
 	public static final DataLoader INSTANCE = new DataLoader();
 	
-	private static final String charset = "ISO-8859-1";
-//	private static final String charset = "UTF-8";
+//	private static final String charset = "ISO-8859-1";
+	private static final String charset = "UTF-8";
 	public static final SimpleDateFormat sdf =
 			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 	
@@ -89,11 +89,11 @@ public class DataLoader {
 		loadOrganizationsPlace();
 		loadPersonWorkStudy();
 		loadPlaceAtPlace();
-		orgPlace.clear();
+//		orgPlace.clear();	// TODO fix this
 		
 		// data used for query4
-		loadForumTag();
-		loadForumMember();
+//		loadForumTag();
+//		loadForumMember();
 	}
 	
 	private void loadCommentReplyTo() throws FileNotFoundException {
@@ -380,7 +380,7 @@ public class DataLoader {
 				forums.put(idForum, new Node(idForum, NodeTypes.FORUM));
 			Node forum = forums.get(idForum);
 			Node tag = tags.get(idTag);
-			forum.createEdge(tag, EdgeTypes.DIRECTED, RelTypes.INTERESTED);			
+			forum.createEdge(tag, EdgeTypes.DIRECTED, RelTypes.FORUMTAG);
 		}
 		scanner.close();
 	}
