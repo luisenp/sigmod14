@@ -6,6 +6,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Scanner;
 
 import sigmod14.mem.Database.EdgeTypes;
@@ -369,6 +370,11 @@ public class DataLoader {
 		scanner.close();
 	}
 	
+	private static HashSet<Long> forumBC = new HashSet<Long>(); //TODO debug 
+	private static HashSet<Long> personsBC = new HashSet<Long>(); //TODO debug
+	private static HashSet<Edge> edgeBC = new HashSet<Edge>(); //TODO debug
+	private static HashSet<Long> forumBC2 = new HashSet<Long>(); //TODO debug
+	
 	private void loadForumTag() throws FileNotFoundException {
 		File file = new File(dataDir + forumTagFName + ".csv");
 		Scanner scanner = new Scanner(file, charset);
@@ -378,10 +384,23 @@ public class DataLoader {
 			String[] fields = line.split("\\|");
 			Long idForum = Long.parseLong(fields[0]);
 			Long idTag = Long.parseLong(fields[1]);
-			Node forum = new Node(idForum, NodeTypes.FORUM);
+			if (!forums.containsKey(idForum))
+				forums.put(idForum, new Node(idForum, NodeTypes.FORUM));
+			Node forum = forums.get(idForum);
 			Node tag = tags.get(idTag);
-			forums.put(idForum, forum);
 			forum.createEdge(tag, EdgeTypes.DIRECTED, RelTypes.INTERESTED);
+			
+			// TODO Debug
+			try {
+				if (tag.getPropertyValue("name").equals("Bill_Clinton")) {
+					forumBC.add(idForum);
+				}
+			} catch (NotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			
 		}
 		scanner.close();
 	}
@@ -394,17 +413,38 @@ public class DataLoader {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
 			Long idForum = Long.parseLong(fields[0]);
-			Long idMember = Long.parseLong(fields[1]);
-			if (!forums.containsKey(idForum)) continue;
+			Long idMember = Long.parseLong(fields[1]);			
+			if (!forums.containsKey(idForum)) 
+				continue; // no tags for this forum	
 			Node forum = forums.get(idForum);
 			Node person = persons.get(idMember);
 			for (Edge edge : forum.getIncident()) {
 				Node tag = edge.getIn();
-				tag.createEdge(person, 
-							   EdgeTypes.DIRECTED, 
-							   RelTypes.MEMBERFORUMTAG);
+				Edge e = new Edge(person, 
+								  tag, 
+								  EdgeTypes.DIRECTED, 
+								  RelTypes.MEMBERFORUMTAG);
+				if (edges.containsKey(e)) continue;
+				tag.addEdge(e);
+				edges.put(e, e);
+				
+				//TODO debug
+				if (forumBC.contains(idForum))	
+					edgeBC.add(e);
+				if (tag.getId() == 2779)
+					forumBC2.add(idForum);
+			}
+			
+			//TODO debug
+			if (forumBC.contains(idForum)) {
+				personsBC.add(idMember);
 			}
 		}
+		//TODO debug
+		System.out.println(forumBC.size() + " " + forumBC2.size());
+		System.out.println(personsBC.size());
+		System.out.println(edgeBC.size());
+		
 		scanner.close();
 		
 	}

@@ -192,15 +192,9 @@ public class QueryHandler {
 	PersonCentralityComparator implements Comparator<PersonCentrality> {
 		public int compare(PersonCentrality pc1, PersonCentrality pc2) {
 			if (pc1.centrality == pc2.centrality) {
-				try {
-					String name1 = (String) pc1.person.getPropertyValue("name");
-					String name2 = (String) pc2.person.getPropertyValue("name");
-					return name1.compareTo(name2);
-				} catch (NotFoundException e) {
-					System.err.println("ERROR: Person should have a name");
-					e.printStackTrace();
-					System.exit(-1);
-				}
+				if (pc1.person.getId() > pc2.person.getId()) return -1;
+				if (pc1.person.getId() < pc2.person.getId()) return 1;
+				return 0;
 			}
 			return pc1.centrality.compare(pc2.centrality);
 		}
@@ -342,8 +336,9 @@ public class QueryHandler {
 
 	public LinkedList<Long> query4(int k, String tagName) {
 		// finding the tag with the given name
-		Node tag = null;		
-		for (Node node : tags.values()) {
+		Node tag = null;
+		for (Long idTag : tags.keySet()) {
+			Node node = tags.get(idTag);
 			try {
 				if (node.getPropertyValue("name").equals(tagName)) {
 					tag = node;
@@ -363,7 +358,7 @@ public class QueryHandler {
 		}
 		int n1 = vertices.size() - 1;
 
-//		System.out.println(vertices.size());
+//		System.out.println(tag.getId() + " " + vertices.size());	// TODO debug
 		// from each node p on the graph, do a BFS and compute centrality
 		PriorityQueue<PersonCentrality> pq =
 			new PriorityQueue<PersonCentrality> 
@@ -379,7 +374,7 @@ public class QueryHandler {
 			while (!queue.isEmpty()) {
 				Node p2 = queue.removeFirst();
 				int d = dist.removeFirst();
-				// traverse only graph induced by the forum tag
+				// visit only vertices with the given forum tag
 				if (!vertices.contains(p2)) continue;
 				if (visited.contains(p2)) continue;
 				visited.add(p2);
@@ -390,12 +385,12 @@ public class QueryHandler {
 					queue.add(edge.getOtherNode(p2));
 					dist.add(d + 1);
 				}
-			}			
+			}
 			long rp1 = rp - 1;
 			pq.add(new PersonCentrality(p, new Centrality(rp1*rp1, n1*sp)));
 			if (pq.size() > k) pq.poll();
 		}
-				
+
 		LinkedList<Long> topPersons = new LinkedList<Long> ();
 		while (!pq.isEmpty()) {
 			PersonCentrality pc = pq.poll();

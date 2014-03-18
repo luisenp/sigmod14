@@ -85,5 +85,4 @@ public class Main {
 		// 10k dataset
 //		qHandler.query4(4, "Franklin_D._Roosevelt");
 	}
-
 }
