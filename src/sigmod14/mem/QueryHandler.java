@@ -378,7 +378,7 @@ public class QueryHandler {
 		
 		// finding all vertices on the induced graph
 		HashSet<Node> vertices = new HashSet<Node>();
-		for (Edge edge : tag.getIncident()) {
+		for (Edge edge : tag.getIncidentOther()) {
 			if (edge.getRelType() != RelTypes.MEMBERFORUMTAG) continue;
 			vertices.add(edge.getIn());
 		}

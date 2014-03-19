@@ -11,9 +11,12 @@ public class Node {
 	private HashMap<String,Object> properties;
 	private LinkedList<Edge> incident;
 	
+	private LinkedList<Edge> incidentOther;
+	
 	public Node(long id) {
 		this.id = id;
 		incident = new LinkedList<Edge> ();
+		incidentOther = new LinkedList<Edge> ();
 		properties = new HashMap<String,Object> ();
 	}
 	
@@ -24,9 +27,21 @@ public class Node {
 		incident.add(e);
 		return e;
 	}
+
+	// Creates an edge such that edge.out = this and edge.in = other
+	public 
+	Edge createEdgeOther(Node other, EdgeTypes edgeType, RelTypes relType) {
+		Edge e = new Edge(other, this, edgeType, relType);
+		incidentOther.add(e);
+		return e;
+	}
 	
 	public void addEdge(Edge edge) {
 		incident.add(edge);
+	}
+
+	public void addEdgeOther(Edge edge) {
+		incidentOther.add(edge);
 	}
 	
 	public Object getPropertyValue(String property) throws NotFoundException {
@@ -44,6 +59,10 @@ public class Node {
 
 	public LinkedList<Edge> getIncident() {
 		return incident;
+	}
+
+	public LinkedList<Edge> getIncidentOther() {
+		return incidentOther;
 	}
 	
 	public boolean equals(Object o) {

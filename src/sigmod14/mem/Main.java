@@ -6,10 +6,11 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Scanner;
 
+// TODO The singleton design seems ugly. Consider change later
+// TODO Consider dedicated nodes and edges depending on the type
 public class Main {
-	// TODO The singleton design seems ugly. Consider change later
 	public static void main(String[] args) {
-		String charset = "UTF-8"; // "ISO-8859-1"; 
+		String charset = "UTF-8"; // "ISO-8859-1"; //   
 		DataLoader loader = DataLoader.INSTANCE;
 		loader.setCharset(charset);
 		QueryHandler qHandler = QueryHandler.INSTANCE;		
@@ -54,9 +55,9 @@ public class Main {
 						e.printStackTrace();
 					}
 				} else if (queryType.equals("query3")) {
-//					int k = Integer.parseInt(params[0]);
-//					int hops = Integer.parseInt(params[1]);
-//					System.out.println(qHandler.query3(k, hops, params[2]));
+					int k = Integer.parseInt(params[0]);
+					int hops = Integer.parseInt(params[1]);
+					System.out.println(qHandler.query3(k, hops, params[2]));
 				} else if (queryType.equals("query4")) {
 					int k = Integer.parseInt(params[0]);
 					System.out.println(qHandler.query4(k, params[1]));

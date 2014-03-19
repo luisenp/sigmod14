@@ -408,10 +408,10 @@ public class DataLoader {
 				Node tag = edge.getIn();
 				Edge e = new Edge(person, 
 								  tag, 
-								  EdgeTypes.DIRECTED, 
+								  EdgeTypes.DIRECTED,
 								  RelTypes.MEMBERFORUMTAG);
 				if (edges.containsKey(e)) continue;
-				tag.addEdge(e);
+				tag.addEdgeOther(e);
 				edges.put(e, e);				
 			}			
 		}
