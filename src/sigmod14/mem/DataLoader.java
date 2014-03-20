@@ -44,7 +44,7 @@ public class DataLoader {
 	private HashMap<Long,Node> tags;
 	private HashMap<Long,Node> places;
 	private HashMap<Long,Node> forums;
-	private HashMap<Long,Long> commentCreator;
+	private HashMapLong commentCreator;
 	private HashMap<Long,Long> orgPlace;
 	private HashMap<Long,Long> placeLocatedAtPlace;
 	private HashMap<String,String> namePlaces;
@@ -83,6 +83,8 @@ public class DataLoader {
 		// no need to store comments anymore
 		commentCreator = null;
 		Database.INSTANCE.clearCommentCreator(); 
+		
+		System.out.println("LOADED COMMENTS");
 		
 		// data used for query2
 		loadTags();

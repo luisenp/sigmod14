@@ -22,7 +22,7 @@ public class Database {
 	private HashMap<Long,Node> persons;
 	private HashMap<Long,Node> tags;
 	private HashMap<Long,Node> places;
-	private HashMap<Long,Long> commentCreator;
+	private HashMapLong commentCreator;
 	private HashMap<Long,Long> orgPlace;
 	private HashMap<Long,Long> placeLocatedAtPlace;
 	private HashMap<Edge,Edge> edges;
@@ -36,7 +36,7 @@ public class Database {
 		places = new HashMap<Long,Node> (10000);
 		forums = new HashMap<Long,Node> (10000);
 
-		commentCreator = new HashMap<Long,Long> (22000000);
+		commentCreator = new HashMapLong (4999999);
 		orgPlace = new HashMap<Long,Long> (10000);
 		placeLocatedAtPlace = new HashMap<Long,Long> (10000);
 		namePlaces = new HashMap<String,String> (10000);
@@ -68,7 +68,7 @@ public class Database {
 		return places;
 	}
 
-	public HashMap<Long, Long> getCommentCreator() {
+	public HashMapLong getCommentCreator() {
 		return commentCreator;
 	}
 
