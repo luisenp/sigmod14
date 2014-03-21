@@ -11,14 +11,15 @@ import java.util.PriorityQueue;
 import sigmod14.mem.Database.RelTypes;
 
 public class QueryHandler {
-	public static final QueryHandler INSTANCE = new QueryHandler();
-
-	// pointers to Database storage
-	private HashMap<Long,Node> persons;
-	private HashMap<Long,Node> tags;
-	private HashMap<Long,Long> placeLocatedAtPlace;
-	private HashMap<String,String> namePlaces;
-		
+	public static final QueryHandler INSTANCE = 
+				new QueryHandler(Database.INSTANCE);
+	
+	private Database db;
+	
+	private QueryHandler(Database db) {
+		this.db = db;
+	}
+	
 	private class TagComparator implements Comparator<Long> {
 		private Date date;
 		private HashMap<Long, Integer> ranges;
@@ -32,7 +33,7 @@ public class QueryHandler {
 		private int getRangeTag(long tagID) {
 			if (ranges.containsKey(tagID)) return ranges.get(tagID);
 			HashSet<Long> vertices = new HashSet<Long>();
-			Node tag = tags.get(tagID);
+			Node tag = db.getTag(tagID);
 			
 			// getting all the persons in the induced graph
 			for (Edge edge : tag.getIncident()) {
@@ -57,11 +58,11 @@ public class QueryHandler {
 				LinkedList<Long> stack = new LinkedList<Long> ();
 				stack.add(id);
 				while (!stack.isEmpty()) {
-					Long idPerson = stack.removeFirst();
-					if (visited.contains(idPerson)) continue;
-					visited.add(idPerson);
+					Long personID = stack.removeFirst();
+					if (visited.contains(personID)) continue;
+					visited.add(personID);
 					sizeComp++;
-					Node person = persons.get(idPerson);
+					Node person = db.getPerson(personID);
 					for (Edge edge : person.getIncident()) {
 						if (!edge.getRelType().equals(RelTypes.KNOWS)) continue;
 						Long idAdjPerson = edge.getOtherNode(person).getId();
@@ -81,10 +82,8 @@ public class QueryHandler {
 			int comp = score1.compareTo(score2);
 			if (comp == 0) {
 				try {
-					String name1 = 
-						(String) tags.get(tag1ID).getPropertyValue("name");
-					String name2 = 
-						(String) tags.get(tag2ID).getPropertyValue("name");
+					String name1 = db.getTagName(tag1ID);
+					String name2 = db.getTagName(tag2ID);
 					return name2.compareTo(name1);
 				} catch (NotFoundException e) {
 					System.err.println("ERROR: All tags should have a name");
@@ -202,23 +201,16 @@ public class QueryHandler {
 		}
 		
 	}
-	
-	private QueryHandler() {
-		persons = Database.INSTANCE.getPersons();
-		tags = Database.INSTANCE.getTags();
-		placeLocatedAtPlace = Database.INSTANCE.getPlaceLocatedAtPlace();
-		namePlaces = Database.INSTANCE.getNamePlaces();
-	}
-	
+		
 	// does a BFS on the induced graph, starting from p1 and counting the
 	// steps to reach p2
 	public String query1(long p1, long p2, int x) {
-		Node goal = persons.get(p2);
+		Node goal = db.getPerson(p2);
 		if (goal == null) return "-1";
 		LinkedList<Node> queue = new LinkedList<Node> ();
 		LinkedList<Integer> dist = new LinkedList<Integer> ();
 		HashSet<Node> visited = new HashSet<Node> ();
-		queue.addFirst(persons.get(p1));
+		queue.addFirst(db.getPerson(p1));
 		dist.addFirst(0);
 		while (!queue.isEmpty()) {
 			Node person = queue.removeFirst();			
@@ -253,7 +245,7 @@ public class QueryHandler {
 		// priority queue according to the tag range
 		PriorityQueue<Long> pq = 
 			new PriorityQueue<Long> (k + 1, new TagComparator(date));
-		for (Long tagID : tags.keySet()) {
+		for (Long tagID : db.getAllTags()) {
 			pq.add(tagID);
 			if (pq.size() > k) pq.poll();
 		} 
@@ -262,8 +254,7 @@ public class QueryHandler {
 		String topTags = "";
 		while (!pq.isEmpty()) {
 			try {				
-				String tagName = (String) tags.get(pq.poll())
-					                          .getPropertyValue("name");
+				String tagName = db.getTagName(pq.poll());
 				topTags = tagName + " " + topTags;
 			} catch (NotFoundException e) {
 				System.err.println("ERROR: All tags should have a name");
@@ -276,27 +267,25 @@ public class QueryHandler {
 	}
 	
 	private boolean personIsLocatedAt(long personID, long placeID) {
-		Node person = persons.get(personID);
+		Node person = db.getPerson(personID);
 		for (Edge edge : person.getIncident()) {
 			if (edge.getRelType() != RelTypes.LOCATEDAT) continue;
-			Long place = edge.getIn().getId();
+			Long tmpPlace = edge.getIn().getId();
 			do {
-				if (place == placeID) return true;
-				if (placeLocatedAtPlace.containsKey(place)) 
-					place = placeLocatedAtPlace.get(place);
-				else place = null;
-			} while (place != null);
+				if (tmpPlace == placeID) return true;
+				tmpPlace = db.getPlaceLocation(tmpPlace);
+			} while (tmpPlace != null);
 		}
 		return false;
 	}	
 	
 	public String query3(int k, int hops, String placeName) {
 		// finding all persons at placeName
-		String placeIDs[] = namePlaces.get(placeName).split(" ");
+		String placeIDs[] = db.getPlacesNamed(placeName).split(" ");
 		HashSet<Long> personsAtPlace = new HashSet<Long> ();
 		for (String s: placeIDs) {
 			Long placeID = Long.parseLong(s);
-			for (Long personID : persons.keySet()) {
+			for (Long personID : db.getAllPersons()) {
 				if (personIsLocatedAt(personID, placeID)) 
 					personsAtPlace.add(personID);
 			}
@@ -307,7 +296,7 @@ public class QueryHandler {
 		PriorityQueue<PersonPair> pq = 
 			new PriorityQueue<PersonPair>(k + 1, new PersonPairComparator()); 
 		for (Long idP1 : personsAtPlace) {
-			Node p1 = persons.get(idP1);
+			Node p1 = db.getPerson(idP1);
 			LinkedList<Node> queue = new LinkedList<Node>();
 			LinkedList<Integer> dist = new LinkedList<Integer>();
 			HashSet<Long> visited = new HashSet<Long>();
@@ -363,8 +352,8 @@ public class QueryHandler {
 	public String query4(int k, String tagName) {
 		// finding the tag with the given name
 		Node tag = null;
-		for (Long idTag : tags.keySet()) {
-			Node node = tags.get(idTag);
+		for (Long idTag : db.getAllTags()) {
+			Node node = db.getTag(idTag);
 			try {
 				if (node.getPropertyValue("name").equals(tagName)) {
 					tag = node;

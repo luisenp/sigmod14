@@ -8,14 +8,14 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Scanner;
 
-import sigmod14.mem.Database.EdgeTypes;
 import sigmod14.mem.Database.RelTypes;
 
-public class DataLoader {
-	public static final DataLoader INSTANCE = new DataLoader();
+public class DataLoader {	
+	public static final DataLoader INSTANCE = new DataLoader(Database.INSTANCE);
+	
+	private Database db;
 	
 	private String charset = "UTF-8";
 	public final SimpleDateFormat sdf =
@@ -38,30 +38,9 @@ public class DataLoader {
 	public static final String forumMemberFName = "forum_hasMember_person";
 
 	private String dataDir;
-
-	// pointers to Database storage
-	private HashMap<Long,Node> persons;
-	private HashMap<Long,Node> tags;
-	private HashMap<Long,Node> places;
-	private HashMap<Long,Node> forums;
-	private HashMapLong commentCreator;
-	private HashMap<Long,Long> orgPlace;
-	private HashMap<Long,Long> placeLocatedAtPlace;
-	private HashMap<String,String> namePlaces;
-	private HashMap<Edge,Edge> edges;
 	
-	private DataLoader() {
-		persons = Database.INSTANCE.getPersons();
-		tags = Database.INSTANCE.getTags();
-		places = Database.INSTANCE.getPlaces();
-		forums = Database.INSTANCE.getForums();
-
-		commentCreator = Database.INSTANCE.getCommentCreator();
-		orgPlace = Database.INSTANCE.getOrgPlace();
-		placeLocatedAtPlace = Database.INSTANCE.getPlaceLocatedAtPlace();
-		namePlaces = Database.INSTANCE.getNamePlaces();
-		
-		edges = Database.INSTANCE.getEdges();
+	private DataLoader(Database db) {
+		this.db = db;
 	}
 
 	public void setCharset(String charset) {
@@ -75,14 +54,13 @@ public class DataLoader {
 	public void loadData() throws IOException, ParseException {
 		// data used to create person graph 
 		loadPersons();
-		readPersonKnowsPerson();
+		loadPersonKnowsPerson();
 		
 		// data used for query1
 		loadCommentsCreator();
 		loadCommentReplyTo();
 		// no need to store comments anymore
-		commentCreator = null;
-		Database.INSTANCE.clearCommentCreator(); 
+		db.clearCommentCreator(); 
 		
 		System.out.println("LOADED COMMENTS");
 		
@@ -113,16 +91,15 @@ public class DataLoader {
 			// (*) reply will already be on DB iff it has a creator who knows
 			//     someone. Otherwise it is useless for query1
 			Long replyID = Long.parseLong(fields[0]);
-			if (!commentCreator.containsKey(replyID)) 
+			if (!db.commentHasCreator(replyID))
 				continue;
 			
 			Long repliedToID = Long.parseLong(fields[1]);
-			if (!commentCreator.containsKey(repliedToID)) 
+			if (!db.commentHasCreator(repliedToID)) 
 				continue; // see (*) above
 			
-			Node creatorReply = persons.get(commentCreator.get(replyID));
-			Node creatorRepliedTo = 
-					persons.get(commentCreator.get(repliedToID));
+			Node creatorReply = db.getCommentCreator(replyID);
+			Node creatorRepliedTo = db.getCommentCreator(repliedToID);
 			
 			Edge edge;
 			try {
@@ -149,59 +126,16 @@ public class DataLoader {
 		br.close();
 	}
 
-	// this method assumes that readPerson() and readPersonKnowsPerson
-	// have already been called
-	private void loadCommentsCreator() throws IOException {
-		String file = dataDir + commentCreatorFName + ".csv";
-		BufferedReader br = new BufferedReader(new FileReader(file));
-		String line = br.readLine();
-		while ((line = br.readLine()) != null) {
-			String[] fields = line.split("\\|");
-
-			// if the creator is not already in DB then there is no point
-			// in storing this comment because creator doesn't know anyone
-			Long personID = Long.parseLong(fields[1]);
-			if (!persons.containsKey(personID)) continue;
-			
-			Long commentID = Long.parseLong(fields[0]);
-			commentCreator.put(commentID, personID);			
-		}
-		br.close();
-	}
-
-
-	private void readPersonKnowsPerson() throws FileNotFoundException {
+	private void loadPersonKnowsPerson() throws FileNotFoundException {
 		Scanner scanner = new Scanner(new File(dataDir + personKnows + ".csv"),
 				                      charset);
 		scanner.nextLine();
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
-			String[] fields = line.split("\\|");
-			
+			String[] fields = line.split("\\|");			
 			Long person1ID = Long.parseLong(fields[0]);
-			if (!persons.containsKey(person1ID)) 
-				persons.put(person1ID, new Node(person1ID));
-			
 			Long person2ID = Long.parseLong(fields[1]);
-			if (!persons.containsKey(person2ID)) 
-				persons.put(person2ID, new Node(person2ID));
-
-			// convention is that the node with lowest ID will be "out" node
-			Node person1 = persons.get(Math.min(person1ID, person2ID));
-			Node person2 = persons.get(Math.max(person1ID, person2ID));
-			Edge edge = new Edge(person1, 
-							     person2, 
-					             EdgeTypes.UNDIRECTED, 
-					             RelTypes.KNOWS);			
-			
-			// person_knows_person has both directed edges, we only need one
-			if (edges.containsKey(edge)) continue;
-			
-			person1.addEdge(edge);
-			person2.addEdge(edge);
-			edge.setProperty("repOut", 0);
-			edge.setProperty("repIn", 0);			
-			edges.put(edge, edge);
+			db.addKnowsRelationship(person1ID, person2ID);
 		}
 		scanner.close();
 	}
@@ -215,12 +149,29 @@ public class DataLoader {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
 			Long id = Long.parseLong(fields[0]);
-			Node person = new Node(id);
 			Date birthday = sdf.parse(fields[4] + ":00:00:00");
-			person.setProperty("birthday", birthday);
-			persons.put(id, person);
+			db.addPerson(id, birthday);
 		}
 		scanner.close();
+	}
+
+	// this method assumes loadPersonKnowsPerson() has already been called
+	private void loadCommentsCreator() throws IOException {
+		String file = dataDir + commentCreatorFName + ".csv";
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		String line = br.readLine();
+		while ((line = br.readLine()) != null) {
+			String[] fields = line.split("\\|");
+
+			// if creator is not already in DB then there is no point
+			// in storing this comment because creator doesn't know anyone
+			Long personID = Long.parseLong(fields[1]);
+			if (!db.containsPerson(personID)) continue;
+			
+			Long commentID = Long.parseLong(fields[0]);
+			db.addCommentCreator(commentID, personID);		
+		}
+		br.close();
 	}
 	
 	private void loadTags() throws FileNotFoundException {
@@ -232,10 +183,7 @@ public class DataLoader {
 			String[] fields = line.split("\\|");
 			Long id = Long.parseLong(fields[0]);
 			String name = fields[1];
-			Node tag = new Node(id);
-			tag.setProperty("name", name);
-			tags.put(id, tag);
-			
+			db.addTag(id, name);		
 		}
 		scanner.close();
 	}
@@ -246,24 +194,10 @@ public class DataLoader {
 		scanner.nextLine();
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
-			String[] fields = line.split("\\|");
-			
-			Long personID = Long.parseLong(fields[0]);
-			if (!persons.containsKey(personID)) 
-				persons.put(personID, new Node(personID));
-			Node person = persons.get(personID);
-			
+			String[] fields = line.split("\\|");			
+			Long personID = Long.parseLong(fields[0]);			
 			Long tagID = Long.parseLong(fields[1]);
-			if (!tags.containsKey(tagID))
-				tags.put(tagID, new Node(tagID));
-			Node tag = tags.get(tagID);
-			
-			Edge edge = tag.createEdge(person, 
-									   EdgeTypes.DIRECTED, 
-									   RelTypes.INTERESTED);
-			person.addEdge(edge);
-			edges.put(edge, edge);
-			
+			db.addInterestRelationship(personID, tagID);
 		}
 		scanner.close();
 	}
@@ -276,14 +210,8 @@ public class DataLoader {
 			String line = scanner.nextLine();			
 			String[] fields = line.split("\\|");
 			Long idPlace = Long.parseLong(fields[0]);
-			Node place = new Node(idPlace);
-			places.put(idPlace, place);
-			if (!namePlaces.containsKey(fields[1])) {
-				namePlaces.put(fields[1], String.valueOf(idPlace));
-			} else { 
-				namePlaces.put(fields[1], 
-							   namePlaces.get(fields[1]) + " " + idPlace);
-			}	
+			String name = fields[1];
+			db.addPlaceNamed(name, idPlace);
 		}
 		scanner.close();
 	}
@@ -295,35 +223,27 @@ public class DataLoader {
 		while (scanner.hasNextLine()) {			
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
-			Long idOrg = Long.parseLong(fields[0]);
-			Long idPlace = Long.parseLong(fields[1]);
-			orgPlace.put(idOrg, idPlace);
+			Long orgID = Long.parseLong(fields[0]);
+			Long placeID = Long.parseLong(fields[1]);
+			db.addPlaceOrg(orgID, placeID);
 		}
 		scanner.close();		
 	}
 	
+	// this method assumes loadPersonKnowsPerson() has already been called
 	private void loadPersonsPlace() throws FileNotFoundException {
 		String file = dataDir + personLocation + ".csv";
 		Scanner scanner = new Scanner(new File(file), charset);
-		scanner.nextLine();
+		scanner.nextLine();		
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
-			
 			Long personID = Long.parseLong(fields[0]);
-			if (!persons.containsKey(personID)) 
-				continue;	// person doesn't know other persons
-			Node person = persons.get(personID);
-			
+			if (!db.containsPerson(personID)) 
+				continue;	// person must know other persons
 			Long placeID = Long.parseLong(fields[1]);
-			if (!places.containsKey(placeID))
-				places.put(placeID, new Node(placeID));
-			Node place = places.get(placeID);
+			db.addPersonLocatedRelationship(personID, placeID);
 			
-			Edge edge = person.createEdge(place,
-							     	     EdgeTypes.DIRECTED, 
-									     RelTypes.LOCATEDAT);
-			edges.put(edge, edge);
 		}
 		scanner.close();
 	}
@@ -333,6 +253,8 @@ public class DataLoader {
 		loadPersonsOrg(personStudyFName);
 	}
 	
+	// this method assumes loadPersonKnowsPerson() and loadOrganizationsPlace()
+	// have already been called
 	private void loadPersonsOrg(String fileName) throws FileNotFoundException {
 		String file = dataDir + fileName + ".csv";
 		Scanner scanner = new Scanner(new File(file), charset);
@@ -342,22 +264,14 @@ public class DataLoader {
 			String[] fields = line.split("\\|");
 			
 			Long personID = Long.parseLong(fields[0]);
-			if (!persons.containsKey(personID)) 
+			if (!db.containsPerson(personID)) 
 				continue;	// person doesn't know other persons
-			Node person = persons.get(personID);
 			
 			Long orgID = Long.parseLong(fields[1]);
-			if (!orgPlace.containsKey(orgID))
+			if (!db.containsPlaceOrg(orgID))
 				continue;	// no place for this organization
-			Long placeID = orgPlace.get(orgID);
-			if (!places.containsKey(placeID))
-				places.put(placeID, new Node(placeID));
-			Node place = places.get(placeID);
-			
-			Edge edge = person.createEdge(place,
-							     	     EdgeTypes.DIRECTED, 
-									     RelTypes.LOCATEDAT);
-			edges.put(edge, edge);
+			Long placeID = db.getPlaceOrg(orgID);
+			db.addPersonLocatedRelationship(personID, placeID);
 		}
 		scanner.close();
 	}
@@ -369,9 +283,9 @@ public class DataLoader {
 		while (scanner.hasNextLine()) {			
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
-			Long idPlace1 = Long.parseLong(fields[0]);
-			Long idPlace2 = Long.parseLong(fields[1]);
-			placeLocatedAtPlace.put(idPlace1, idPlace2);
+			Long place1ID = Long.parseLong(fields[0]);
+			Long place2ID = Long.parseLong(fields[1]);
+			db.addPlaceLocatedRelationship(place1ID, place2ID);
 		}
 		scanner.close();
 	}
@@ -383,39 +297,23 @@ public class DataLoader {
 		while (scanner.hasNextLine()) {			
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
-			Long idForum = Long.parseLong(fields[0]);
-			Long idTag = Long.parseLong(fields[1]);
-			if (!forums.containsKey(idForum))
-				forums.put(idForum, new Node(idForum));
-			Node forum = forums.get(idForum);
-			Node tag = tags.get(idTag);
-			forum.createEdge(tag, EdgeTypes.DIRECTED, RelTypes.FORUMTAG);
+			Long forumID = Long.parseLong(fields[0]);
+			Long tagID = Long.parseLong(fields[1]);
+			db.addForumTagRelationship(forumID, tagID);
 		}
 		scanner.close();
 	}
-	
+
+	// this method assumes loadForumTag() was called before
 	private void loadForumMember() throws IOException {
 		File file = new File(dataDir + forumMemberFName + ".csv");			
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		String line = br.readLine();
 		while ((line = br.readLine()) != null) {
 			String[] fields = line.split("\\|");
-			Long idForum = Long.parseLong(fields[0]);
-			Long idMember = Long.parseLong(fields[1]);			
-			if (!forums.containsKey(idForum)) 
-				continue; // no tags for this forum	
-			Node forum = forums.get(idForum);
-			Node person = persons.get(idMember);
-			for (Edge edge : forum.getIncident()) {
-				Node tag = edge.getIn();
-				Edge e = new Edge(person, 
-								  tag, 
-								  EdgeTypes.DIRECTED,
-								  RelTypes.MEMBERFORUMTAG);
-				if (edges.containsKey(e)) continue;
-				tag.addEdgeOther(e);
-				edges.put(e, e);				
-			}			
+			Long forumID = Long.parseLong(fields[0]);
+			Long personID = Long.parseLong(fields[1]);
+			db.addInterestAllForumTags(personID, forumID);
 		}
 		br.close();
 	}

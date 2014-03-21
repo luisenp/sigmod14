@@ -6,11 +6,11 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Scanner;
 
-// TODO The singleton design seems ugly. Consider change later
+// TODO The singleton design seems ugly. Consider changing later
 // TODO Consider dedicated nodes and edges depending on the type
 public class Main {
 	public static void main(String[] args) {
-		String charset = "UTF-8"; // "ISO-8859-1"; //   
+		String charset = "UTF-8"; // "ISO-8859-1"; //     
 		DataLoader loader = DataLoader.INSTANCE;
 		loader.setCharset(charset);
 		QueryHandler qHandler = QueryHandler.INSTANCE;		
