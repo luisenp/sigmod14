@@ -1,21 +1,18 @@
-package sigmod14.mem;
+package sigmod14.mem.graph;
 
 import java.util.HashMap;
 
 import sigmod14.mem.Database.EdgeTypes;
 import sigmod14.mem.Database.RelTypes;
 
-public class Edge {
-	private Node out;
-	private Node in;
+public class Edge extends AbstractEdge {
 	private EdgeTypes edgeType;
 	private RelTypes relType;
 	private HashMap<String,Object> properties;
 	
-	public Edge(Node in, Node out, 
+	public Edge(AbstractNode in, AbstractNode out,
 				EdgeTypes edgeType, RelTypes relType) {
-		this.in = in;
-		this.out = out;
+		super(in, out);
 		this.edgeType = edgeType;
 		this.relType = relType;
 	}
@@ -38,18 +35,6 @@ public class Edge {
 		properties.put(property, value);
 	}
 	
-	public Node getOut() {
-		return out;
-	}
-
-	public Node getIn() {
-		return in;
-	}
-	
-	public Node getOtherNode(Node node) {
-		return this.getOut().equals(node) ? getIn() : getOut();
-	}
-
 	public boolean equals(Object o) {
 		Edge other = (Edge) o;
 		return in.equals(other.in) && out.equals(other.out) 
@@ -62,5 +47,4 @@ public class Edge {
 										+ 37*(in.hashCode() 
 												+ 37*out.hashCode()));
 	}
-	
 }

@@ -5,4 +5,4 @@ bin/
 data/
 target/
 queries/
-src/sigmod14/mem/Person.java
+src/sigmod14/mem/Test*

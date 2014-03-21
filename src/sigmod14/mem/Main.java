@@ -10,11 +10,11 @@ import java.util.Scanner;
 // TODO Consider dedicated nodes and edges depending on the type
 public class Main {
 	public static void main(String[] args) {
-		String charset = "UTF-8"; // "ISO-8859-1"; //     
+		String charset = "ISO-8859-1"; // "UTF-8"; //      
 		DataLoader loader = DataLoader.INSTANCE;
 		loader.setCharset(charset);
 		QueryHandler qHandler = QueryHandler.INSTANCE;		
-		loader.setDataDirectory("data/outputDir-10k");
+		loader.setDataDirectory("data/outputDir-1k");
 		
 		try {
 			long time = System.currentTimeMillis();
@@ -35,7 +35,7 @@ public class Main {
 		
 		try {
 			Scanner scanner = 
-				new Scanner(new File("data/queries/10k-queries.txt"), 
+				new Scanner(new File("data/queries/1k-queries.txt"), 
 						    charset);
 			while (scanner.hasNextLine()) {
 				String line = scanner.nextLine();

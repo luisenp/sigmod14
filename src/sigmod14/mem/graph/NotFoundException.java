@@ -1,4 +1,4 @@
-package sigmod14.mem;
+package sigmod14.mem.graph;
 
 public class NotFoundException extends Exception {
 

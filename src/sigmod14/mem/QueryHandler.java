@@ -9,6 +9,10 @@ import java.util.LinkedList;
 import java.util.PriorityQueue;
 
 import sigmod14.mem.Database.RelTypes;
+import sigmod14.mem.graph.AbstractNode;
+import sigmod14.mem.graph.Edge;
+import sigmod14.mem.graph.Node;
+import sigmod14.mem.graph.NotFoundException;
 
 public class QueryHandler {
 	public static final QueryHandler INSTANCE = 
@@ -33,15 +37,16 @@ public class QueryHandler {
 		private int getRangeTag(long tagID) {
 			if (ranges.containsKey(tagID)) return ranges.get(tagID);
 			HashSet<Long> vertices = new HashSet<Long>();
-			Node tag = db.getTag(tagID);
+			Node tag = (Node) db.getTag(tagID);
 			
 			// getting all the persons in the induced graph
 			for (Edge edge : tag.getIncident()) {
 				if (!edge.getRelType().equals(RelTypes.INTERESTED)) continue;
-				Node person = edge.getIn();
+				AbstractNode person = edge.getIn();
 				Date birthday;
 				try {
-					birthday = (Date) person.getPropertyValue("birthday");
+					birthday = 
+						(Date) ((Node) person).getPropertyValue("birthday");
 				} catch (NotFoundException e) {
 					continue;	// this person is not defined in persons.csv 
 				}
@@ -62,7 +67,7 @@ public class QueryHandler {
 					if (visited.contains(personID)) continue;
 					visited.add(personID);
 					sizeComp++;
-					Node person = db.getPerson(personID);
+					Node person = (Node) db.getPerson(personID);
 					for (Edge edge : person.getIncident()) {
 						if (!edge.getRelType().equals(RelTypes.KNOWS)) continue;
 						Long idAdjPerson = edge.getOtherNode(person).getId();
@@ -118,7 +123,7 @@ public class QueryHandler {
 			Node person2 = pp.person2;
 			for (Edge e1 : person1.getIncident()) {
 				if (e1.getRelType() != RelTypes.INTERESTED) continue;
-				Node tag = e1.getOut();
+				Node tag = (Node) e1.getOut();
 				for (Edge e2 : tag.getIncident()) {
 					if (e2.getRelType() == RelTypes.INTERESTED
 							&& e2.getIn().equals(person2)) {
@@ -205,22 +210,22 @@ public class QueryHandler {
 	// does a BFS on the induced graph, starting from p1 and counting the
 	// steps to reach p2
 	public String query1(long p1, long p2, int x) {
-		Node goal = db.getPerson(p2);
+		Node goal = (Node) db.getPerson(p2);
 		if (goal == null) return "-1";
-		LinkedList<Node> queue = new LinkedList<Node> ();
+		LinkedList<AbstractNode> queue = new LinkedList<AbstractNode> ();
 		LinkedList<Integer> dist = new LinkedList<Integer> ();
 		HashSet<Node> visited = new HashSet<Node> ();
 		queue.addFirst(db.getPerson(p1));
 		dist.addFirst(0);
 		while (!queue.isEmpty()) {
-			Node person = queue.removeFirst();			
+			Node person = (Node) queue.removeFirst();			
 			int d = dist.removeFirst();
 			if (visited.contains(person)) continue;
 			if (person.equals(goal)) return String.valueOf(d);
 			visited.add(person);
 			for (Edge edge: person.getIncident()) {
 				if (edge.getRelType() != RelTypes.KNOWS) continue;
-				Node adjPerson = edge.getOtherNode(person);
+				Node adjPerson = (Node) edge.getOtherNode(person);
 				int replyOut = -1, replyIn = -1;
 				try {
 					replyOut = (Integer) edge.getPropertyValue("repOut");
@@ -267,7 +272,7 @@ public class QueryHandler {
 	}
 	
 	private boolean personIsLocatedAt(long personID, long placeID) {
-		Node person = db.getPerson(personID);
+		Node person = (Node) db.getPerson(personID);
 		for (Edge edge : person.getIncident()) {
 			if (edge.getRelType() != RelTypes.LOCATEDAT) continue;
 			Long tmpPlace = edge.getIn().getId();
@@ -296,7 +301,7 @@ public class QueryHandler {
 		PriorityQueue<PersonPair> pq = 
 			new PriorityQueue<PersonPair>(k + 1, new PersonPairComparator()); 
 		for (Long idP1 : personsAtPlace) {
-			Node p1 = db.getPerson(idP1);
+			Node p1 = (Node) db.getPerson(idP1);
 			LinkedList<Node> queue = new LinkedList<Node>();
 			LinkedList<Integer> dist = new LinkedList<Integer>();
 			HashSet<Long> visited = new HashSet<Long>();
@@ -318,7 +323,7 @@ public class QueryHandler {
 				if (d == hops) continue;
 				for (Edge edge : p2.getIncident()) {
 					if (edge.getRelType() != RelTypes.KNOWS) continue;
-					queue.add(edge.getOtherNode(p2));
+					queue.add((Node) edge.getOtherNode(p2));
 					dist.add(d + 1);
 				}
 			}
@@ -353,7 +358,7 @@ public class QueryHandler {
 		// finding the tag with the given name
 		Node tag = null;
 		for (Long idTag : db.getAllTags()) {
-			Node node = db.getTag(idTag);
+			Node node = (Node) db.getTag(idTag);
 			try {
 				if (node.getPropertyValue("name").equals(tagName)) {
 					tag = node;
@@ -369,7 +374,7 @@ public class QueryHandler {
 		HashSet<Node> vertices = new HashSet<Node>();
 		for (Edge edge : tag.getIncidentOther()) {
 			if (edge.getRelType() != RelTypes.MEMBERFORUMTAG) continue;
-			vertices.add(edge.getIn());
+			vertices.add((Node) edge.getIn());
 		}
 		int n1 = vertices.size() - 1;
 
@@ -402,7 +407,7 @@ public class QueryHandler {
 				}
 				for (Edge edge : p2.getIncident()) {
 					if (edge.getRelType() != RelTypes.KNOWS) continue;
-					queue.add(edge.getOtherNode(p2));
+					queue.add((Node) edge.getOtherNode(p2));
 					dist.add(d + 1);
 				}
 			}

@@ -1,4 +1,4 @@
-package sigmod14.mem;
+package sigmod14.mem.graph;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -6,15 +6,14 @@ import java.util.LinkedList;
 import sigmod14.mem.Database.EdgeTypes;
 import sigmod14.mem.Database.RelTypes;
 
-public class Node {
-	private long id;
+public class Node extends AbstractNode {
 	private HashMap<String,Object> properties;
 	private LinkedList<Edge> incident;
 	
 	private LinkedList<Edge> incidentOther;
 	
 	public Node(long id) {
-		this.id = id;
+		super(id);
 		incident = new LinkedList<Edge> ();
 		incidentOther = new LinkedList<Edge> ();
 		properties = new HashMap<String,Object> ();
@@ -52,10 +51,6 @@ public class Node {
 	public void setProperty(String property, Object value) {
 		properties.put(property, value);
 	}
-	
-	public long getId() {
-		return id;
-	}
 
 	public LinkedList<Edge> getIncident() {
 		return incident;
@@ -65,15 +60,6 @@ public class Node {
 		return incidentOther;
 	}
 	
-	public boolean equals(Object o) {
-		Node other = (Node) o;
-		return id == other.id;
-	}
-	
-	public int hashCode() {
-		return (int) id;
-	}
-	
 	public 
 	Edge findEdgeTo(Node other, RelTypes type) throws NotFoundException {
 		for (Edge e : incident) {
@@ -81,9 +67,4 @@ public class Node {
 		}
 		throw new NotFoundException();
 	}
-	
-	public String toString() {
-		return String.valueOf(id);
-	}
-	
 }

@@ -4,6 +4,11 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 
+import sigmod14.mem.graph.AbstractNode;
+import sigmod14.mem.graph.Edge;
+import sigmod14.mem.graph.Node;
+import sigmod14.mem.graph.NotFoundException;
+
 public class Database {
 	public static final Database INSTANCE = new Database();
 	
@@ -21,22 +26,22 @@ public class Database {
 	}	
 		
 	// data storage
-	private HashMap<Long,Node> persons;
-	private HashMap<Long,Node> tags;
-	private HashMap<Long,Node> places;
+	private HashMap<Long,AbstractNode> persons;
+	private HashMap<Long,AbstractNode> tags;
+	private HashMap<Long,AbstractNode> places;
 	private HashMapLong commentCreator;
 	private HashMapLong placeOrg;
 	private HashMapLong placeLocatedAtPlace;
 	private HashMap<Edge,Edge> edges;
 	private HashMap<String,String> namePlaces;
-	private HashMap<Long,Node> forums;
+	private HashMap<Long,AbstractNode> forums;
 	
 	// private constructor to instantiate public INSTANCE
 	private Database() {
-		persons = new HashMap<Long,Node> (100000);
-		tags = new HashMap<Long,Node> (100000);
-		places = new HashMap<Long,Node> (10000);
-		forums = new HashMap<Long,Node> (10000);
+		persons = new HashMap<Long,AbstractNode> (100000);
+		tags = new HashMap<Long,AbstractNode> (100000);
+		places = new HashMap<Long,AbstractNode> (10000);
+		forums = new HashMap<Long,AbstractNode> (10000);
 
 		commentCreator = new HashMapLong(4999999);
 		placeOrg = new HashMapLong(10007);
@@ -68,7 +73,7 @@ public class Database {
 		return commentCreator.containsKey(id);
 	}
 	
-	public Node getCommentCreator(long id) {
+	public AbstractNode getCommentCreator(long id) {
 		return persons.get(commentCreator.get(id));
 	}
 	
@@ -76,7 +81,7 @@ public class Database {
 		return persons.containsKey(id);
 	}
 	
-	public Node addPerson(long id) {
+	public AbstractNode addPerson(long id) {
 		if (!containsPerson(id)) {
 			Node person = new Node(id);
 			persons.put(id, person);
@@ -86,20 +91,20 @@ public class Database {
 		}
 	}
 	
-	public Node addPerson(long id, Date birthday) {
+	public AbstractNode addPerson(long id, Date birthday) {
 		if (!containsPerson(id)) {
 			Node person = new Node(id);
 			person.setProperty("birthday", birthday);
 			persons.put(id, person);
 			return person;
 		} else {
-			Node person = persons.get(id);
+			Node person = (Node) persons.get(id);
 			person.setProperty("birthday", birthday);
 			return person;
 		}
 	}
 	
-	public Node getPerson(long id) {
+	public AbstractNode getPerson(long id) {
 		return persons.get(id);
 	}
 	
@@ -107,9 +112,37 @@ public class Database {
 		return persons.keySet();
 	}
 	
+	public void addReply(long replyID, long repliedToID) {
+		Node creatorReply = (Node) getCommentCreator(replyID);
+		Node creatorRepliedTo = (Node) getCommentCreator(repliedToID);
+		
+		Edge edge;
+		try {
+			edge = Database.INSTANCE.findUndirectedEdge(creatorReply, 
+								                        creatorRepliedTo, 
+											            RelTypes.KNOWS);
+		} catch (NotFoundException e) {
+			// no point in keeping this reply, creators must know e/other
+			return;
+		}
+		String property = 
+			edge.getOut().equals(creatorReply) ? "repOut" : "repIn";
+
+		Integer replies = -1;
+		try {
+			replies = (Integer) edge.getPropertyValue(property) + 1;
+		} catch (NotFoundException e) {
+			System.err.println("ERROR: Reply property should exist.");
+			e.printStackTrace();
+			System.exit(-1);
+		}
+		edge.setProperty(property, replies);
+		
+	}
+	
 	public void addKnowsRelationship(long person1ID, long person2ID) {
-		Node person1 = addPerson(Math.min(person1ID, person2ID));
-		Node person2 = addPerson(Math.max(person1ID, person2ID));
+		Node person1 = (Node) addPerson(Math.min(person1ID, person2ID));
+		Node person2 = (Node) addPerson(Math.max(person1ID, person2ID));
 		Edge edge = new Edge(person1, 
 						     person2, 
 				             EdgeTypes.UNDIRECTED, 
@@ -125,36 +158,36 @@ public class Database {
 		edges.put(edge, edge);
 	}
 
-	public Node addTag(long id) {
+	public AbstractNode addTag(long id) {
 		if (!tags.containsKey(id)) {
 			Node tag = new Node(id);
 			tags.put(id, tag);
 			return tag;
 		} else {
-			Node tag = tags.get(id);
+			Node tag = (Node) tags.get(id);
 			return tag;			
 		}
 	}
 	
-	public Node addTag(long id, String name) {
+	public AbstractNode addTag(long id, String name) {
 		if (!tags.containsKey(id)) {
 			Node tag = new Node(id);
 			tag.setProperty("name", name);
 			tags.put(id, tag);
 			return tag;
 		} else {
-			Node tag = tags.get(id);
+			Node tag = (Node) tags.get(id);
 			tag.setProperty("name", name);
 			return tag;			
 		}
 	}
 	
-	public Node getTag(long id) {
+	public AbstractNode getTag(long id) {
 		return tags.get(id);
 	}
 	
 	public String getTagName(long id) throws NotFoundException {
-		return (String) tags.get(id).getPropertyValue("name"); 
+		return (String) ((Node) tags.get(id)).getPropertyValue("name"); 
 	}
 	
 	public Collection<Long> getAllTags() {
@@ -162,26 +195,26 @@ public class Database {
 	}
 	
 	public void addInterestRelationship(long personID, long tagID) {
-		Node person = addPerson(personID);
-		Node tag = addTag(tagID);
+		Node person = (Node) addPerson(personID);
+		Node tag = (Node) addTag(tagID);
 		Edge edge = 
 			tag.createEdge(person, EdgeTypes.DIRECTED, RelTypes.INTERESTED);
 		person.addEdge(edge);
 		edges.put(edge, edge);
 	}
 	
-	public Node addPlace(long id) {
+	public AbstractNode addPlace(long id) {
 		if (!places.containsKey(id)) {
 			Node place = new Node(id);
 			places.put(id, place);
 			return place;
 		} else {
-			Node place = places.get(id);
+			Node place = (Node) places.get(id);
 			return place;	
 		}
 	}
 	
-	public Node addPlaceNamed(String name, long id) {
+	public AbstractNode addPlaceNamed(String name, long id) {
 		if (!places.containsKey(id)) {
 			Node place = new Node(id);
 			places.put(id, place);
@@ -191,7 +224,7 @@ public class Database {
 				namePlaces.put(name, namePlaces.get(name) + " " + id);
 			return place;
 		} else {
-			Node place = places.get(id);
+			Node place = (Node) places.get(id);
 			if (!namePlaces.containsKey(name)) 
 				namePlaces.put(name, String.valueOf(id));
 			else
@@ -217,8 +250,8 @@ public class Database {
 	}
 	
 	public void addPersonLocatedRelationship(long personID, long placeID) {
-		Node place = addPlace(placeID);
-		Node person = getPerson(personID);
+		Node place = (Node) addPlace(placeID);
+		Node person = (Node) getPerson(personID);
 		Edge edge = 
 			person.createEdge(place, EdgeTypes.DIRECTED, RelTypes.LOCATEDAT);
 		edges.put(edge, edge);
@@ -229,14 +262,15 @@ public class Database {
 	}
 	
 	public Long getPlaceLocation(long id) {
-		return placeLocatedAtPlace.get(id);
+		long place = placeLocatedAtPlace.get(id);
+		return place == -1? null : place;
 	}
 	
 	public void addForumTagRelationship(long forumID, long tagID) {
 		if (!forums.containsKey(forumID))
 			forums.put(forumID, new Node(forumID));
-		Node forum = forums.get(forumID);
-		Node tag = tags.get(tagID);
+		Node forum = (Node) forums.get(forumID);
+		Node tag = (Node) tags.get(tagID);
 		forum.createEdge(tag, EdgeTypes.DIRECTED, RelTypes.FORUMTAG);		
 	}
 	
@@ -245,19 +279,19 @@ public class Database {
 	}
 	
 	public void addInterestAllForumTags(long personID, long forumID) {
-		Node forum = forums.get(forumID);
+		Node forum = (Node) forums.get(forumID);
 		if (forum == null) 
 			return;
-		Node person = persons.get(personID);
+		Node person = (Node) persons.get(personID);
 		for (Edge edge : forum.getIncident()) {
-			Node tag = edge.getIn();
+			AbstractNode tag = edge.getIn();
 			Edge e = new Edge(person, 
 							  tag, 
 							  EdgeTypes.DIRECTED, 
 							  RelTypes.MEMBERFORUMTAG);
 			if (edges.containsKey(e)) 
 				continue;
-			tag.addEdgeOther(e);
+			((Node) tag).addEdgeOther(e);
 			edges.put(e, e);				
 		}
 	}

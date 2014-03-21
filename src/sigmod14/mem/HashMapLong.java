@@ -48,6 +48,8 @@ public class HashMapLong {
 	
 	public long get(long key) {
 		int bucket = hash(key);
+		if (storage[bucket] == null) 
+			return -1;
 		int L = storage[bucket].length;
 		for (int i = 0; i < L; i += 2) {
 			if (storage[bucket][i] == key) 

@@ -10,7 +10,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Scanner;
 
-import sigmod14.mem.Database.RelTypes;
+//import sigmod14.mem.Database.RelTypes;
 
 public class DataLoader {	
 	public static final DataLoader INSTANCE = new DataLoader(Database.INSTANCE);
@@ -98,30 +98,7 @@ public class DataLoader {
 			if (!db.commentHasCreator(repliedToID)) 
 				continue; // see (*) above
 			
-			Node creatorReply = db.getCommentCreator(replyID);
-			Node creatorRepliedTo = db.getCommentCreator(repliedToID);
-			
-			Edge edge;
-			try {
-				edge = Database.INSTANCE.findUndirectedEdge(creatorReply, 
-									                        creatorRepliedTo, 
-												            RelTypes.KNOWS);
-			} catch (NotFoundException e) {
-				// no point in keeping this reply, creators must know e/other
-				continue;
-			}
-			String property = 
-				edge.getOut().equals(creatorReply) ? "repOut" : "repIn";
-
-			Integer replies = -1;
-			try {
-				replies = (Integer) edge.getPropertyValue(property) + 1;
-			} catch (NotFoundException e) {
-				System.err.println("ERROR: Reply property should exist.");
-				e.printStackTrace();
-				System.exit(-1);
-			}
-			edge.setProperty(property, replies);	
+			db.addReply(replyID, repliedToID);	
 		}
 		br.close();
 	}
