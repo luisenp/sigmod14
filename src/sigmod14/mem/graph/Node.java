@@ -8,20 +8,20 @@ import sigmod14.mem.Database.RelTypes;
 
 public class Node extends AbstractNode {
 	private HashMap<String,Object> properties;
-	private LinkedList<Edge> incident;
+	private LinkedList<AbstractEdge> incident;
 	
-	private LinkedList<Edge> incidentOther;
+	private LinkedList<AbstractEdge> incidentOther;
 	
 	public Node(long id) {
 		super(id);
-		incident = new LinkedList<Edge> ();
-		incidentOther = new LinkedList<Edge> ();
+		incident = new LinkedList<AbstractEdge> ();
+		incidentOther = new LinkedList<AbstractEdge> ();
 		properties = new HashMap<String,Object> ();
 	}
 	
 	// Creates an edge such that edge.out = this and edge.in = other
 	public 
-	Edge createEdge(Node other, EdgeTypes edgeType, RelTypes relType) {
+	Edge createEdge(AbstractNode other, EdgeTypes edgeType, RelTypes relType) {
 		Edge e = new Edge(other, this, edgeType, relType);
 		incident.add(e);
 		return e;
@@ -52,17 +52,18 @@ public class Node extends AbstractNode {
 		properties.put(property, value);
 	}
 
-	public LinkedList<Edge> getIncident() {
+	public LinkedList<AbstractEdge> getIncident() {
 		return incident;
 	}
 
-	public LinkedList<Edge> getIncidentOther() {
+	public LinkedList<AbstractEdge> getIncidentOther() {
 		return incidentOther;
 	}
 	
 	public 
-	Edge findEdgeTo(Node other, RelTypes type) throws NotFoundException {
-		for (Edge e : incident) {
+	AbstractEdge findEdgeTo(AbstractNode other, RelTypes type) 
+			throws NotFoundException {
+		for (AbstractEdge e : incident) {
 			if (e.getOut().equals(other)) return e;
 		}
 		throw new NotFoundException();

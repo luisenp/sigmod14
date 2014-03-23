@@ -68,6 +68,8 @@ public class DataLoader {
 		loadTags();
 		loadPersonsInterest();
 		
+		System.out.println("LOADED INTERESTS");
+		
 		// data used for query3
 		loadPlaces();
 		loadPersonsPlace();
@@ -75,10 +77,14 @@ public class DataLoader {
 		loadPersonWorkStudy();
 		loadPlaceAtPlace();
 //		orgPlace.clear();	// TODO fix this
+
+		System.out.println("LOADED PLACES");
 		
 		// data used for query4
 		loadForumTag();
 		loadForumMember();
+
+		System.out.println("LOADED FORUMS");
 	}
 	
 	private void loadCommentReplyTo() throws IOException {
@@ -271,7 +277,7 @@ public class DataLoader {
 		File file = new File(dataDir + forumTagFName + ".csv");
 		Scanner scanner = new Scanner(file, charset);
 		scanner.nextLine();
-		while (scanner.hasNextLine()) {			
+		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
 			Long forumID = Long.parseLong(fields[0]);

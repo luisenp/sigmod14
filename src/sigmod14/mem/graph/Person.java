@@ -5,16 +5,20 @@ import java.util.LinkedList;
 
 public class Person extends AbstractNode {
 	private long birthday;
-	private LinkedList<Edge> interests;
-	private LinkedList<Edge> locations;
-	private LinkedList<Edge> forumsTags;
-		
+	private LinkedList<AbstractEdge> knows;
+	private LinkedList<AbstractEdge> interests;
+	private LinkedList<AbstractEdge> locations;
+	
+	public Person(long id) {
+		this(id, -1L);
+	}
+
 	public Person(long id, long birthday) {
 		super(id);
 		this.birthday = birthday;
-		interests = new LinkedList<Edge>();
-		locations = new LinkedList<Edge>();
-		forumsTags = new LinkedList<Edge>();
+		knows = new LinkedList<AbstractEdge>();
+		interests = new LinkedList<AbstractEdge>();
+		locations = new LinkedList<AbstractEdge>();
 	}
 	
 	public long getBirthday() {
@@ -24,16 +28,28 @@ public class Person extends AbstractNode {
 	public void setBirthday(long birthday) {
 		this.birthday = birthday;
 	}
+
+	public LinkedList<AbstractEdge> getKnows() {
+		return knows;
+	}
 	
-	public LinkedList<Edge> getInterests() {
+	public LinkedList<AbstractEdge> getInterests() {
 		return interests;
 	}
 
-	public LinkedList<Edge> getLocations() {
+	public LinkedList<AbstractEdge> getLocations() {
 		return locations;
 	}
-
-	public LinkedList<Edge> getForumTags() {
-		return forumsTags;
+	
+	public void addKnowsEdge(AbstractEdge edge) {
+		knows.add(edge);
+	}
+	
+	public void addInterestEdge(AbstractEdge edge) {
+		interests.add(edge);
+	}
+	
+	public void addLocationEdge(AbstractEdge edge) {
+		locations.add(edge);
 	}
 }

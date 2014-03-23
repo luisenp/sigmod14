@@ -35,8 +35,7 @@ public class Edge extends AbstractEdge {
 		properties.put(property, value);
 	}
 	
-	public boolean equals(Object o) {
-		Edge other = (Edge) o;
+	public boolean equals(Edge other) {
 		return in.equals(other.in) && out.equals(other.out) 
 				&& edgeType.equals(other.getEdgeType())
 				&& relType.equals(other.getRelType());

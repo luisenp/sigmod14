@@ -18,7 +18,7 @@ public abstract class AbstractEdge {
 		return in;
 	}
 	
-	public AbstractNode getOtherNode(Node node) {
+	public AbstractNode getOtherNode(AbstractNode node) {
 		return this.getOut().equals(node) ? getIn() : getOut();
 	}
 }
