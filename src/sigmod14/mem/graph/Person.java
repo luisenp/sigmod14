@@ -10,7 +10,7 @@ public class Person extends AbstractNode {
 	private LinkedList<AbstractEdge> locations;
 	
 	public Person(long id) {
-		this(id, -1L);
+		this(id, -123456789012345678L);
 	}
 
 	public Person(long id, long birthday) {
@@ -21,7 +21,8 @@ public class Person extends AbstractNode {
 		locations = new LinkedList<AbstractEdge>();
 	}
 	
-	public long getBirthday() {
+	public long getBirthday() throws NotFoundException {
+		if (birthday == -123456789012345678L) throw new NotFoundException();
 		return birthday;
 	}
 

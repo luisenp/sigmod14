@@ -8,12 +8,11 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
 
-import sigmod14.mem.Database.RelTypes;
 import sigmod14.mem.graph.AbstractEdge;
 import sigmod14.mem.graph.Edge;
-import sigmod14.mem.graph.Node;
 import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
+import sigmod14.mem.graph.Tag;
 
 public class QueryHandler {
 	public static final QueryHandler INSTANCE = 
@@ -38,14 +37,19 @@ public class QueryHandler {
 		private int getRangeTag(long tagID) {
 			if (ranges.containsKey(tagID)) return ranges.get(tagID);
 			HashSet<Long> vertices = new HashSet<Long>();
-			Node tag = (Node) db.getTag(tagID);
+			Tag tag = db.getTag(tagID);
 			
 			// getting all the persons in the induced graph
-			for (AbstractEdge ae : tag.getIncident()) {
-				Edge edge = (Edge) ae;
-				if (!edge.getRelType().equals(RelTypes.INTERESTED)) continue;
-				Person person = (Person) edge.getIn();
-				long birthday = person.getBirthday();
+			for (AbstractEdge edge : tag.getInterested()) {
+				Person person = (Person) edge.getIn();				
+				long birthday = 0;
+				try {
+					birthday = person.getBirthday();
+				} catch (NotFoundException e) {
+					System.err.println("ERROR: Birthday should be defined.");
+					e.printStackTrace();
+					System.exit(-1);
+				}
 				if (birthday < date) continue;
 				vertices.add(person.getId());
 			}
@@ -117,13 +121,10 @@ public class QueryHandler {
 			int similarity = 0;
 			Person person1 = pp.person1;
 			Person person2 = pp.person2;
-			for (AbstractEdge ae1 : person1.getInterests()) {
-				Edge e1 = (Edge) ae1;
-				Node tag = (Node) e1.getOut();
-				for (AbstractEdge ae2 : tag.getIncident()) {
-					Edge e2 = (Edge) ae2;
-					if (e2.getRelType() == RelTypes.INTERESTED
-							&& e2.getIn().equals(person2)) {
+			for (AbstractEdge e1 : person1.getInterests()) {
+				Tag tag = (Tag) e1.getOut();
+				for (AbstractEdge e2 : tag.getInterested()) {
+					if (e2.getIn().equals(person2)) {
 						similarity++;
 						break;
 					}
@@ -270,8 +271,7 @@ public class QueryHandler {
 	
 	private boolean personIsLocatedAt(long personID, long placeID) {
 		Person person = db.getPerson(personID);
-		for (AbstractEdge ae : person.getLocations()) {
-			Edge edge = (Edge) ae;
+		for (AbstractEdge edge : person.getLocations()) {
 			Long tmpPlace = edge.getIn().getId();
 			do {
 				if (tmpPlace == placeID) return true;
@@ -353,11 +353,11 @@ public class QueryHandler {
 	
 	public String query4(int k, String tagName) {
 		// finding the tag with the given name
-		Node tag = null;
+		Tag tag = null;
 		for (Long idTag : db.getAllTags()) {
-			Node node = (Node) db.getTag(idTag);
+			Tag node = db.getTag(idTag);
 			try {
-				if (node.getPropertyValue("name").equals(tagName)) {
+				if (db.getTagName(idTag).equals(tagName)) {
 					tag = node;
 				}
 			} catch (NotFoundException e) {
@@ -369,9 +369,7 @@ public class QueryHandler {
 		
 		// finding all vertices on the induced graph
 		HashSet<Person> vertices = new HashSet<Person>();
-		for (AbstractEdge ae : tag.getIncidentOther()) {
-			Edge edge = (Edge) ae;
-			if (edge.getRelType() != RelTypes.MEMBERFORUMTAG) continue;
+		for (AbstractEdge edge : tag.getMembersForums()) {
 			vertices.add((Person) edge.getIn());
 		}
 		int n1 = vertices.size() - 1;

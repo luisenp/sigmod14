@@ -10,6 +10,7 @@ import sigmod14.mem.graph.Edge;
 import sigmod14.mem.graph.Node;
 import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
+import sigmod14.mem.graph.Tag;
 
 public class Database {
 	public static final Database INSTANCE = new Database();
@@ -29,7 +30,7 @@ public class Database {
 		
 	// data storage
 	private HashMap<Long,Person> persons;
-	private HashMap<Long,AbstractNode> tags;
+	private HashMap<Long,Tag> tags;
 	private HashMap<Long,AbstractNode> places;
 	private HashMapLong commentCreator;
 	private HashMapLong placeOrg;
@@ -37,13 +38,13 @@ public class Database {
 	private HashMap<String,String> namePlaces;
 	private HashMap<Long,AbstractNode> forums;
 
-	private HashMap<Edge,Edge> edges;
+	private HashMap<AbstractEdge,AbstractEdge> edges;
 	private HashMap<Edge,Edge> edgesTagsForums;
 	
 	// private constructor to instantiate public INSTANCE
 	private Database() {
 		persons = new HashMap<Long,Person> (100000);
-		tags = new HashMap<Long,AbstractNode> (100000);
+		tags = new HashMap<Long,Tag> (100000);
 		places = new HashMap<Long,AbstractNode> (10000);
 		forums = new HashMap<Long,AbstractNode> (10000);
 
@@ -52,7 +53,7 @@ public class Database {
 		placeLocatedAtPlace = new HashMapLong(10007);
 		namePlaces = new HashMap<String,String> (10000);
 		
-		edges = new HashMap<Edge,Edge> (500000);
+		edges = new HashMap<AbstractEdge,AbstractEdge> (500000);
 		edgesTagsForums = new HashMap<Edge,Edge> (1000000);
 	}
 	
@@ -64,7 +65,7 @@ public class Database {
 		AbstractNode out = n1.getId() < n2.getId() ? n1 : n2;
 		AbstractNode in = n1.getId() < n2.getId() ? n2 : n1;
 		Edge e = new Edge(out, in, EdgeTypes.UNDIRECTED, relType);
-		if (edges.containsKey(e)) return edges.get(e);
+		if (edges.containsKey(e)) return (Edge) edges.get(e);
 		throw new NotFoundException();
 	}
 	
@@ -163,36 +164,35 @@ public class Database {
 		edges.put(edge, edge);
 	}
 
-	public AbstractNode addTag(long id) {
+	public Tag addTag(long id) {
 		if (!tags.containsKey(id)) {
-			Node tag = new Node(id);
+			Tag tag = new Tag(id);
 			tags.put(id, tag);
 			return tag;
 		} else {
-			Node tag = (Node) tags.get(id);
+			Tag tag = (Tag) tags.get(id);
 			return tag;			
 		}
 	}
 	
-	public AbstractNode addTag(long id, String name) {
+	public Tag addTag(long id, String name) {
 		if (!tags.containsKey(id)) {
-			Node tag = new Node(id);
-			tag.setProperty("name", name);
+			Tag tag = new Tag(id, name);
 			tags.put(id, tag);
 			return tag;
 		} else {
-			Node tag = (Node) tags.get(id);
-			tag.setProperty("name", name);
+			Tag tag = (Tag) tags.get(id);
+			tag.setName(name);
 			return tag;			
 		}
 	}
 	
-	public AbstractNode getTag(long id) {
+	public Tag getTag(long id) {
 		return tags.get(id);
 	}
 	
-	public String getTagName(long id) throws NotFoundException {
-		return (String) ((Node) tags.get(id)).getPropertyValue("name"); 
+	public String getTagName(long id) throws NotFoundException {		
+		return tags.get(id).getName(); 
 	}
 	
 	public Collection<Long> getAllTags() {
@@ -201,9 +201,9 @@ public class Database {
 	
 	public void addInterestRelationship(long personID, long tagID) {
 		Person person = addPerson(personID);
-		Node tag = (Node) addTag(tagID);
-		Edge edge = 
-			tag.createEdge(person, EdgeTypes.DIRECTED, RelTypes.INTERESTED);
+		Tag tag = addTag(tagID);
+		AbstractEdge edge = new AbstractEdge(person, tag);
+		tag.addInterested(edge);
 		person.addInterestEdge(edge);
 		edges.put(edge, edge);
 	}
@@ -276,7 +276,7 @@ public class Database {
 		if (!forums.containsKey(forumID))
 			forums.put(forumID, new Node(forumID));
 		Node forum = (Node) forums.get(forumID);
-		Node tag = (Node) tags.get(tagID);
+		Tag tag = tags.get(tagID);
 		forum.createEdge(tag, EdgeTypes.DIRECTED, RelTypes.FORUMTAG);		
 	}
 	
@@ -290,14 +290,14 @@ public class Database {
 			return;
 		AbstractNode person = persons.get(personID);
 		for (AbstractEdge edge : forum.getIncident()) {
-			AbstractNode tag = edge.getIn();
+			Tag tag = (Tag) edge.getIn();
 			Edge e = new Edge(person, 
 							  tag, 
 							  EdgeTypes.DIRECTED, 
 							  RelTypes.MEMBERFORUMTAG);
 			if (edgesTagsForums.containsKey(e)) 
 				continue;
-			((Node) tag).addEdgeOther(e);
+			tag.addMemberForum(e);
 			edgesTagsForums.put(e, e);				
 		}
 	}
