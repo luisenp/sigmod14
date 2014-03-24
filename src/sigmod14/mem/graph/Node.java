@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 import sigmod14.mem.Database.EdgeTypes;
-import sigmod14.mem.Database.RelTypes;
 
 public class Node extends AbstractNode {
 	private HashMap<String,Object> properties;
@@ -21,16 +20,16 @@ public class Node extends AbstractNode {
 	
 	// Creates an edge such that edge.out = this and edge.in = other
 	public 
-	Edge createEdge(AbstractNode other, EdgeTypes edgeType, RelTypes relType) {
-		Edge e = new Edge(other, this, edgeType, relType);
+	Edge createEdge(AbstractNode other, EdgeTypes edgeType) {
+		Edge e = new Edge(other, this, edgeType);
 		incident.add(e);
 		return e;
 	}
 
 	// Creates an edge such that edge.out = this and edge.in = other
 	public 
-	Edge createEdgeOther(Node other, EdgeTypes edgeType, RelTypes relType) {
-		Edge e = new Edge(other, this, edgeType, relType);
+	Edge createEdgeOther(Node other, EdgeTypes edgeType) {
+		Edge e = new Edge(other, this, edgeType);
 		incidentOther.add(e);
 		return e;
 	}
@@ -61,7 +60,7 @@ public class Node extends AbstractNode {
 	}
 	
 	public 
-	AbstractEdge findEdgeTo(AbstractNode other, RelTypes type) 
+	AbstractEdge findEdgeTo(AbstractNode other) 
 			throws NotFoundException {
 		for (AbstractEdge e : incident) {
 			if (e.getOut().equals(other)) return e;

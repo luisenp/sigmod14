@@ -19,11 +19,11 @@ public class Tag extends AbstractNode {
 		this.name = name;
 	}
 	
-	public void addInterested(AbstractEdge person) {
+	public void addInterestedEdge(AbstractEdge person) {
 		interested.add(person);
 	}
 
-	public void addMemberForum(AbstractEdge person) {
+	public void addMemberForumEdge(AbstractEdge person) {
 		membersForums.add(person);
 	}
 	
