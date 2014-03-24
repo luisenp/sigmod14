@@ -1,7 +1,7 @@
 package sigmod14.mem.graph;
 
 
-public abstract class AbstractEdge {
+public class AbstractEdge {
 	protected AbstractNode out;
 	protected AbstractNode in;
 	

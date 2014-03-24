@@ -68,8 +68,6 @@ public class DataLoader {
 		loadTags();
 		loadPersonsInterest();
 		
-		System.out.println("LOADED INTERESTS");
-		
 		// data used for query3
 		loadPlaces();
 		loadPersonsPlace();
@@ -77,14 +75,10 @@ public class DataLoader {
 		loadPersonWorkStudy();
 		loadPlaceAtPlace();
 //		orgPlace.clear();	// TODO fix this
-
-		System.out.println("LOADED PLACES");
 		
 		// data used for query4
 		loadForumTag();
 		loadForumMember();
-
-		System.out.println("LOADED FORUMS");
 	}
 	
 	private void loadCommentReplyTo() throws IOException {

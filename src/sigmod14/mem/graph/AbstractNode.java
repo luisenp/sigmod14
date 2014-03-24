@@ -1,8 +1,8 @@
 package sigmod14.mem.graph;
 
 
-public abstract class AbstractNode {
-	private long id;
+public class AbstractNode {
+	protected long id;
 	
 	public AbstractNode(long id) {
 		this.id = id;
@@ -12,8 +12,8 @@ public abstract class AbstractNode {
 		return id;
 	}
 	
-	public boolean equals(AbstractNode other) {
-		return id == other.id;
+	public boolean equals(Object o) {
+		return id == ((AbstractNode) o).id;
 	}
 	
 	public int hashCode() {

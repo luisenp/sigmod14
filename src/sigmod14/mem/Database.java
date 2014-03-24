@@ -34,9 +34,11 @@ public class Database {
 	private HashMapLong commentCreator;
 	private HashMapLong placeOrg;
 	private HashMapLong placeLocatedAtPlace;
-	private HashMap<Edge,Edge> edges;
 	private HashMap<String,String> namePlaces;
 	private HashMap<Long,AbstractNode> forums;
+
+	private HashMap<Edge,Edge> edges;
+	private HashMap<Edge,Edge> edgesTagsForums;
 	
 	// private constructor to instantiate public INSTANCE
 	private Database() {
@@ -51,6 +53,7 @@ public class Database {
 		namePlaces = new HashMap<String,String> (10000);
 		
 		edges = new HashMap<Edge,Edge> (500000);
+		edgesTagsForums = new HashMap<Edge,Edge> (1000000);
 	}
 	
 	// this method is used by DataLoader.loadCommentReplyTo() 
@@ -292,10 +295,10 @@ public class Database {
 							  tag, 
 							  EdgeTypes.DIRECTED, 
 							  RelTypes.MEMBERFORUMTAG);
-			if (edges.containsKey(e)) 
+			if (edgesTagsForums.containsKey(e)) 
 				continue;
 			((Node) tag).addEdgeOther(e);
-			edges.put(e, e);				
+			edgesTagsForums.put(e, e);				
 		}
 	}
 }
