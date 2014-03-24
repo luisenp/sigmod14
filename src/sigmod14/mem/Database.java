@@ -4,11 +4,10 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 
-import sigmod14.mem.graph.AbstractEdge;
-import sigmod14.mem.graph.AbstractNode;
 import sigmod14.mem.graph.Edge;
-import sigmod14.mem.graph.Forum;
 import sigmod14.mem.graph.Node;
+import sigmod14.mem.graph.KnowsEdge;
+import sigmod14.mem.graph.Forum;
 import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
@@ -24,21 +23,21 @@ public class Database {
 	// data storage
 	private HashMap<Long,Person> persons;
 	private HashMap<Long,Tag> tags;
-	private HashMap<Long,AbstractNode> places;
+	private HashMap<Long,Node> places;
 	private HashMapLong commentCreator;
 	private HashMapLong placeOrg;
 	private HashMapLong placeLocatedAtPlace;
 	private HashMap<String,String> namePlaces;
 	private HashMap<Long,Forum> forums;
 
-	private HashMap<AbstractEdge,AbstractEdge> edges;
-	private HashMap<AbstractEdge,AbstractEdge> edgesTagsForums;
+	private HashMap<Edge,Edge> edges;
+	private HashMap<Edge,Edge> edgesTagsForums;
 	
 	// private constructor to instantiate public INSTANCE
 	private Database() {
 		persons = new HashMap<Long,Person> (100000);
 		tags = new HashMap<Long,Tag> (100000);
-		places = new HashMap<Long,AbstractNode> (10000);
+		places = new HashMap<Long,Node> (10000);
 		forums = new HashMap<Long,Forum> (10000);
 
 		commentCreator = new HashMapLong(4999999);
@@ -46,19 +45,19 @@ public class Database {
 		placeLocatedAtPlace = new HashMapLong(10007);
 		namePlaces = new HashMap<String,String> (10000);
 		
-		edges = new HashMap<AbstractEdge,AbstractEdge> (500000);
-		edgesTagsForums = new HashMap<AbstractEdge,AbstractEdge> (1000000);
+		edges = new HashMap<Edge,Edge> (500000);
+		edgesTagsForums = new HashMap<Edge,Edge> (1000000);
 	}
 	
 	// this method is used by DataLoader.loadCommentReplyTo() 
 	// to quickly find whether two persons know e/o
 	public 
-	Edge findUndirectedEdge(AbstractNode n1, AbstractNode n2) 
+	KnowsEdge findUndirectedEdge(Node n1, Node n2) 
 			throws NotFoundException {
-		AbstractNode out = n1.getId() < n2.getId() ? n1 : n2;
-		AbstractNode in = n1.getId() < n2.getId() ? n2 : n1;
-		Edge e = new Edge(out, in, EdgeTypes.UNDIRECTED);
-		if (edges.containsKey(e)) return (Edge) edges.get(e);
+		Node out = n1.getId() < n2.getId() ? n1 : n2;
+		Node in = n1.getId() < n2.getId() ? n2 : n1;
+		KnowsEdge e = new KnowsEdge(out, in);
+		if (edges.containsKey(e)) return (KnowsEdge) edges.get(e);
 		throw new NotFoundException();
 	}
 	
@@ -115,7 +114,7 @@ public class Database {
 		Person creatorReply = getCommentCreator(replyID);
 		Person creatorRepliedTo = getCommentCreator(repliedToID);
 		
-		Edge edge;
+		KnowsEdge edge;
 		try {
 			edge = Database.INSTANCE.findUndirectedEdge(creatorReply, 
 								                        creatorRepliedTo);
@@ -123,35 +122,22 @@ public class Database {
 			// no point in keeping this reply, creators must know e/other
 			return;
 		}
-		String property = 
-			edge.getOut().equals(creatorReply) ? "repOut" : "repIn";
-
-		Integer replies = -1;
-		try {
-			replies = (Integer) edge.getPropertyValue(property) + 1;
-		} catch (NotFoundException e) {
-			System.err.println("ERROR: Reply property should exist.");
-			e.printStackTrace();
-			System.exit(-1);
-		}
-		edge.setProperty(property, replies);
-		
+		if (edge.getOut().equals(creatorReply))
+			edge.incRepOut();
+		else
+			edge.incRepIn();
 	}
 	
 	public void addKnowsRelationship(long person1ID, long person2ID) {
 		Person person1 = addPerson(Math.min(person1ID, person2ID));
 		Person person2 = addPerson(Math.max(person1ID, person2ID));
-		Edge edge = new Edge(person1, 
-						     person2, 
-				             EdgeTypes.UNDIRECTED);			
+		KnowsEdge edge = new KnowsEdge(person1, person2);			
 		
 		// person_knows_person has both directed edges, we only need one
 		if (edges.containsKey(edge)) return;
 		
 		person1.addKnowsEdge(edge);
 		person2.addKnowsEdge(edge);
-		edge.setProperty("repOut", 0);
-		edge.setProperty("repIn", 0);
 		edges.put(edge, edge);
 	}
 
@@ -193,24 +179,24 @@ public class Database {
 	public void addInterestRelationship(long personID, long tagID) {
 		Person person = addPerson(personID);
 		Tag tag = addTag(tagID);
-		AbstractEdge edge = new AbstractEdge(person, tag);
+		Edge edge = new Edge(person, tag);
 		tag.addInterestedEdge(edge);
 		person.addInterestEdge(edge);
 //		edgesInterests.put(edge, edge);
 	}
 	
-	public AbstractNode addPlace(long id) {
+	public Node addPlace(long id) {
 		if (!places.containsKey(id)) {
 			Node place = new Node(id);
 			places.put(id, place);
 			return place;
 		} else {
-			Node place = (Node) places.get(id);
+			Node place = places.get(id);
 			return place;	
 		}
 	}
 	
-	public AbstractNode addPlaceNamed(String name, long id) {
+	public Node addPlaceNamed(String name, long id) {
 		if (!places.containsKey(id)) {
 			Node place = new Node(id);
 			places.put(id, place);
@@ -220,7 +206,7 @@ public class Database {
 				namePlaces.put(name, namePlaces.get(name) + " " + id);
 			return place;
 		} else {
-			Node place = (Node) places.get(id);
+			Node place = places.get(id);
 			if (!namePlaces.containsKey(name)) 
 				namePlaces.put(name, String.valueOf(id));
 			else
@@ -246,9 +232,9 @@ public class Database {
 	}
 	
 	public void addPersonLocatedRelationship(long personID, long placeID) {
-		Node place = (Node) addPlace(placeID);
+		Node place = addPlace(placeID);
 		Person person = getPerson(personID);
-		AbstractEdge edge = new AbstractEdge(place, person);
+		Edge edge = new Edge(place, person);
 		person.addLocationEdge(edge);
 	}
 	
@@ -265,9 +251,7 @@ public class Database {
 		if (!forums.containsKey(forumID))
 			forums.put(forumID, new Forum(forumID));
 		Forum forum = forums.get(forumID);
-		Tag tag = tags.get(tagID);
-		AbstractEdge edge = new AbstractEdge(tag, forum);
-		forum.addTagEdge(edge);		
+		forum.addTagEdge(tagID);		
 	}
 	
 	public boolean containsForum(long forumID) {
@@ -278,10 +262,10 @@ public class Database {
 		Forum forum = forums.get(forumID);
 		if (forum == null) 
 			return;
-		AbstractNode person = persons.get(personID);
-		for (AbstractEdge edge : forum.getTags()) {
-			Tag tag = (Tag) edge.getIn();
-			AbstractEdge e = new AbstractEdge(person, tag);
+		Node person = persons.get(personID);
+		for (Long tagID : forum.getTags()) {
+			Tag tag = tags.get(tagID);
+			Edge e = new Edge(person, tag);
 			if (edgesTagsForums.containsKey(e)) 
 				continue;
 			tag.addMemberForumEdge(e);

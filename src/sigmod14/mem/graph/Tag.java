@@ -2,16 +2,16 @@ package sigmod14.mem.graph;
 
 import java.util.LinkedList;
 
-public class Tag extends AbstractNode {
+public class Tag extends Node {
 	private String name;
-	LinkedList<AbstractEdge> interested;
-	LinkedList<AbstractEdge> membersForums;
+	LinkedList<Edge> interested;
+	LinkedList<Edge> membersForums;
 	
 	public Tag(long id) {
 		super(id);
 		name = null;
-		interested = new LinkedList<AbstractEdge>();
-		membersForums = new LinkedList<AbstractEdge>();
+		interested = new LinkedList<Edge>();
+		membersForums = new LinkedList<Edge>();
 	}
 	
 	public Tag(long id, String name) {
@@ -19,11 +19,11 @@ public class Tag extends AbstractNode {
 		this.name = name;
 	}
 	
-	public void addInterestedEdge(AbstractEdge person) {
+	public void addInterestedEdge(Edge person) {
 		interested.add(person);
 	}
 
-	public void addMemberForumEdge(AbstractEdge person) {
+	public void addMemberForumEdge(Edge person) {
 		membersForums.add(person);
 	}
 	
@@ -32,11 +32,11 @@ public class Tag extends AbstractNode {
 		return name;
 	}
 	
-	public LinkedList<AbstractEdge> getInterested() {
+	public LinkedList<Edge> getInterested() {
 		return interested;
 	}
 	
-	public LinkedList<AbstractEdge> getMembersForums() {
+	public LinkedList<Edge> getMembersForums() {
 		return membersForums;
 	}
 	

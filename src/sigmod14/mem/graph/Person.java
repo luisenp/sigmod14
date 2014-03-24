@@ -3,11 +3,11 @@ package sigmod14.mem.graph;
 import java.util.LinkedList;
 
 
-public class Person extends AbstractNode {
+public class Person extends Node {
 	private long birthday;
-	private LinkedList<AbstractEdge> knows;
-	private LinkedList<AbstractEdge> interests;
-	private LinkedList<AbstractEdge> locations;
+	private LinkedList<Edge> knows;
+	private LinkedList<Edge> interests;
+	private LinkedList<Edge> locations;
 	
 	public Person(long id) {
 		this(id, -123456789012345678L);
@@ -16,9 +16,9 @@ public class Person extends AbstractNode {
 	public Person(long id, long birthday) {
 		super(id);
 		this.birthday = birthday;
-		knows = new LinkedList<AbstractEdge>();
-		interests = new LinkedList<AbstractEdge>();
-		locations = new LinkedList<AbstractEdge>();
+		knows = new LinkedList<Edge>();
+		interests = new LinkedList<Edge>();
+		locations = new LinkedList<Edge>();
 	}
 	
 	public long getBirthday() throws NotFoundException {
@@ -30,27 +30,27 @@ public class Person extends AbstractNode {
 		this.birthday = birthday;
 	}
 
-	public LinkedList<AbstractEdge> getKnows() {
+	public LinkedList<Edge> getKnows() {
 		return knows;
 	}
 	
-	public LinkedList<AbstractEdge> getInterests() {
+	public LinkedList<Edge> getInterests() {
 		return interests;
 	}
 
-	public LinkedList<AbstractEdge> getLocations() {
+	public LinkedList<Edge> getLocations() {
 		return locations;
 	}
 	
-	public void addKnowsEdge(AbstractEdge edge) {
+	public void addKnowsEdge(Edge edge) {
 		knows.add(edge);
 	}
 	
-	public void addInterestEdge(AbstractEdge edge) {
+	public void addInterestEdge(Edge edge) {
 		interests.add(edge);
 	}
 	
-	public void addLocationEdge(AbstractEdge edge) {
+	public void addLocationEdge(Edge edge) {
 		locations.add(edge);
 	}
 }

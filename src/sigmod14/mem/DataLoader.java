@@ -79,6 +79,8 @@ public class DataLoader {
 		// data used for query4
 		loadForumTag();
 		loadForumMember();
+		
+		System.out.println();
 	}
 	
 	private void loadCommentReplyTo() throws IOException {

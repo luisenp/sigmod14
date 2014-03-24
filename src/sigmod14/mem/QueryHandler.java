@@ -8,8 +8,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
 
-import sigmod14.mem.graph.AbstractEdge;
 import sigmod14.mem.graph.Edge;
+import sigmod14.mem.graph.KnowsEdge;
 import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
@@ -40,7 +40,7 @@ public class QueryHandler {
 			Tag tag = db.getTag(tagID);
 			
 			// getting all the persons in the induced graph
-			for (AbstractEdge edge : tag.getInterested()) {
+			for (Edge edge : tag.getInterested()) {
 				Person person = (Person) edge.getIn();				
 				long birthday = 0;
 				try {
@@ -68,8 +68,8 @@ public class QueryHandler {
 					visited.add(personID);
 					sizeComp++;
 					Person person = db.getPerson(personID);
-					for (AbstractEdge ae : person.getKnows()) {
-						Edge edge = (Edge) ae;
+					for (Edge ae : person.getKnows()) {
+						KnowsEdge edge = (KnowsEdge) ae;
 						Long idAdjPerson = edge.getOtherNode(person).getId();
 						if (!vertices.contains(idAdjPerson)) continue;
 						stack.addFirst(idAdjPerson);
@@ -121,9 +121,9 @@ public class QueryHandler {
 			int similarity = 0;
 			Person person1 = pp.person1;
 			Person person2 = pp.person2;
-			for (AbstractEdge e1 : person1.getInterests()) {
+			for (Edge e1 : person1.getInterests()) {
 				Tag tag = (Tag) e1.getOut();
-				for (AbstractEdge e2 : tag.getInterested()) {
+				for (Edge e2 : tag.getInterested()) {
 					if (e2.getIn().equals(person2)) {
 						similarity++;
 						break;
@@ -221,18 +221,12 @@ public class QueryHandler {
 			if (visited.contains(person)) continue;
 			if (person.equals(goal)) return String.valueOf(d);
 			visited.add(person);
-			for (AbstractEdge ae : person.getKnows()) {
-				Edge edge = (Edge) ae;
+			for (Edge ae : person.getKnows()) {
+				KnowsEdge edge = (KnowsEdge) ae;
 				Person adjPerson = (Person) edge.getOtherNode(person);
-				int replyOut = -1, replyIn = -1;
-				try {
-					replyOut = (Integer) edge.getPropertyValue("repOut");
-					replyIn = (Integer) edge.getPropertyValue("repIn");
-				} catch (NotFoundException e) {
-					System.err.println("ERROR: Property should had been defined");
-					e.printStackTrace();
-					System.exit(-1);
-				}
+				short replyOut = -1, replyIn = -1;
+				replyOut = edge.getRepOut();
+				replyIn = edge.getRepIn();
 				if (replyIn > x && replyOut > x) {
 					queue.add(adjPerson);
 					dist.add(d + 1);
@@ -271,7 +265,7 @@ public class QueryHandler {
 	
 	private boolean personIsLocatedAt(long personID, long placeID) {
 		Person person = db.getPerson(personID);
-		for (AbstractEdge edge : person.getLocations()) {
+		for (Edge edge : person.getLocations()) {
 			Long tmpPlace = edge.getIn().getId();
 			do {
 				if (tmpPlace == placeID) return true;
@@ -318,8 +312,8 @@ public class QueryHandler {
 					if (pq.size() > k) pq.poll();
 				}
 				if (d == hops) continue;
-				for (AbstractEdge ae : p2.getKnows()) {
-					Edge edge = (Edge) ae;
+				for (Edge ae : p2.getKnows()) {
+					KnowsEdge edge = (KnowsEdge) ae;
 					queue.add((Person) edge.getOtherNode(p2));
 					dist.add(d + 1);
 				}
@@ -369,7 +363,7 @@ public class QueryHandler {
 		
 		// finding all vertices on the induced graph
 		HashSet<Person> vertices = new HashSet<Person>();
-		for (AbstractEdge edge : tag.getMembersForums()) {
+		for (Edge edge : tag.getMembersForums()) {
 			vertices.add((Person) edge.getIn());
 		}
 		int n1 = vertices.size() - 1;
@@ -401,8 +395,8 @@ public class QueryHandler {
 					// worst one in the priority queue
 					break;
 				}
-				for (AbstractEdge ae : p2.getKnows()) {
-					Edge edge = (Edge) ae;
+				for (Edge ae : p2.getKnows()) {
+					KnowsEdge edge = (KnowsEdge) ae;
 					queue.add((Person) edge.getOtherNode(p2));
 					dist.add(d + 1);
 				}
