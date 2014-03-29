@@ -12,8 +12,12 @@ import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
 
-public class Database {
+public class Database implements DB {
 	public static final Database INSTANCE = new Database();
+	
+	public DB instance() {
+		return INSTANCE;
+	}
 	
 	public static enum EdgeTypes {
 		DIRECTED,
