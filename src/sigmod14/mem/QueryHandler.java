@@ -10,6 +10,7 @@ import java.util.PriorityQueue;
 
 import sigmod14.mem.graph.Edge;
 import sigmod14.mem.graph.KnowsEdge;
+import sigmod14.mem.graph.Node;
 import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
@@ -40,8 +41,7 @@ public class QueryHandler {
 			Tag tag = db.getTag(tagID);
 			
 			// getting all the persons in the induced graph
-			for (Edge edge : tag.getInterested()) {
-				Person person = (Person) edge.getIn();				
+			for (Person person : tag.getInterested()) {				
 				long birthday = 0;
 				try {
 					birthday = person.getBirthday();
@@ -121,13 +121,9 @@ public class QueryHandler {
 			int similarity = 0;
 			Person person1 = pp.person1;
 			Person person2 = pp.person2;
-			for (Edge e1 : person1.getInterests()) {
-				Tag tag = (Tag) e1.getOut();
-				for (Edge e2 : tag.getInterested()) {
-					if (e2.getIn().equals(person2)) {
+			for (Tag tag : person1.getInterests()) {
+				if (tag.getInterested().contains(person2)) {
 						similarity++;
-						break;
-					}
 				}
 			}
 			return similarity;
@@ -265,8 +261,8 @@ public class QueryHandler {
 	
 	private boolean personIsLocatedAt(long personID, long placeID) {
 		Person person = db.getPerson(personID);
-		for (Edge edge : person.getLocations()) {
-			Long tmpPlace = edge.getIn().getId();
+		for (Node location : person.getLocations()) {
+			Long tmpPlace = location.getId();
 			do {
 				if (tmpPlace == placeID) return true;
 				tmpPlace = db.getPlaceLocation(tmpPlace);
@@ -363,8 +359,8 @@ public class QueryHandler {
 		
 		// finding all vertices on the induced graph
 		HashSet<Person> vertices = new HashSet<Person>();
-		for (Edge edge : tag.getMembersForums()) {
-			vertices.add((Person) edge.getIn());
+		for (Person person : tag.getMembersForums()) {
+			vertices.add(person);
 		}
 		int n1 = vertices.size() - 1;
 

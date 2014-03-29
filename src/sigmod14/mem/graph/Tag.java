@@ -1,17 +1,18 @@
 package sigmod14.mem.graph;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 
 public class Tag extends Node {
 	private String name;
-	LinkedList<Edge> interested;
-	LinkedList<Edge> membersForums;
+	HashSet<Person> interested;
+	HashSet<Person> membersForums;
 	
 	public Tag(long id) {
 		super(id);
 		name = null;
-		interested = new LinkedList<Edge>();
-		membersForums = new LinkedList<Edge>();
+		interested = new HashSet<Person>();
+		membersForums = new HashSet<Person>();
 	}
 	
 	public Tag(long id, String name) {
@@ -19,11 +20,11 @@ public class Tag extends Node {
 		this.name = name;
 	}
 	
-	public void addInterestedEdge(Edge person) {
+	public void addInterestedPerson(Person person) {
 		interested.add(person);
 	}
 
-	public void addMemberForumEdge(Edge person) {
+	public void addMemberForumEdge(Person person) {
 		membersForums.add(person);
 	}
 	
@@ -32,11 +33,11 @@ public class Tag extends Node {
 		return name;
 	}
 	
-	public LinkedList<Edge> getInterested() {
+	public HashSet<Person> getInterested() {
 		return interested;
 	}
 	
-	public LinkedList<Edge> getMembersForums() {
+	public HashSet<Person> getMembersForums() {
 		return membersForums;
 	}
 	

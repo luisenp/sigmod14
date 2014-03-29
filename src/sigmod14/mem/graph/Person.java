@@ -5,9 +5,9 @@ import java.util.LinkedList;
 
 public class Person extends Node {
 	private long birthday;
-	private LinkedList<Edge> knows;
-	private LinkedList<Edge> interests;
-	private LinkedList<Edge> locations;
+	private LinkedList<KnowsEdge> knows;
+	private LinkedList<Tag> interests;
+	private LinkedList<Node> locations;
 	
 	public Person(long id) {
 		this(id, -123456789012345678L);
@@ -16,9 +16,9 @@ public class Person extends Node {
 	public Person(long id, long birthday) {
 		super(id);
 		this.birthday = birthday;
-		knows = new LinkedList<Edge>();
-		interests = new LinkedList<Edge>();
-		locations = new LinkedList<Edge>();
+		knows = new LinkedList<KnowsEdge>();
+		interests = new LinkedList<Tag>();
+		locations = new LinkedList<Node>();
 	}
 	
 	public long getBirthday() throws NotFoundException {
@@ -30,27 +30,27 @@ public class Person extends Node {
 		this.birthday = birthday;
 	}
 
-	public LinkedList<Edge> getKnows() {
+	public LinkedList<KnowsEdge> getKnows() {
 		return knows;
 	}
 	
-	public LinkedList<Edge> getInterests() {
+	public LinkedList<Tag> getInterests() {
 		return interests;
 	}
 
-	public LinkedList<Edge> getLocations() {
+	public LinkedList<Node> getLocations() {
 		return locations;
 	}
 	
-	public void addKnowsEdge(Edge edge) {
+	public void addKnowsEdge(KnowsEdge edge) {
 		knows.add(edge);
 	}
 	
-	public void addInterestEdge(Edge edge) {
-		interests.add(edge);
+	public void addInterestEdge(Tag tag) {
+		interests.add(tag);
 	}
 	
-	public void addLocationEdge(Edge edge) {
-		locations.add(edge);
+	public void addLocationEdge(Node location) {
+		locations.add(location);
 	}
 }

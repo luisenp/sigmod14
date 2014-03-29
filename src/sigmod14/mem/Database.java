@@ -34,8 +34,7 @@ public class Database implements DB {
 	private HashMap<String,String> namePlaces;
 	private HashMap<Long,Forum> forums;
 
-	private HashMap<Edge,Edge> edges;
-	private HashMap<Edge,Edge> edgesTagsForums;
+	private HashMap<Edge,Edge> knowsEdges;
 	
 	// private constructor to instantiate public INSTANCE
 	private Database() {
@@ -49,8 +48,7 @@ public class Database implements DB {
 		placeLocatedAtPlace = new HashMapLong(10007);
 		namePlaces = new HashMap<String,String> (10000);
 		
-		edges = new HashMap<Edge,Edge> (500000);
-		edgesTagsForums = new HashMap<Edge,Edge> (1000000);
+		knowsEdges = new HashMap<Edge,Edge> (500000);
 	}
 	
 	// this method is used by DataLoader.loadCommentReplyTo() 
@@ -61,7 +59,7 @@ public class Database implements DB {
 		Node out = n1.getId() < n2.getId() ? n1 : n2;
 		Node in = n1.getId() < n2.getId() ? n2 : n1;
 		KnowsEdge e = new KnowsEdge(out, in);
-		if (edges.containsKey(e)) return (KnowsEdge) edges.get(e);
+		if (knowsEdges.containsKey(e)) return (KnowsEdge) knowsEdges.get(e);
 		throw new NotFoundException();
 	}
 	
@@ -138,11 +136,11 @@ public class Database implements DB {
 		KnowsEdge edge = new KnowsEdge(person1, person2);			
 		
 		// person_knows_person has both directed edges, we only need one
-		if (edges.containsKey(edge)) return;
+		if (knowsEdges.containsKey(edge)) return;
 		
 		person1.addKnowsEdge(edge);
 		person2.addKnowsEdge(edge);
-		edges.put(edge, edge);
+		knowsEdges.put(edge, edge);
 	}
 
 	public Tag addTag(long id) {
@@ -183,10 +181,8 @@ public class Database implements DB {
 	public void addInterestRelationship(long personID, long tagID) {
 		Person person = addPerson(personID);
 		Tag tag = addTag(tagID);
-		Edge edge = new Edge(person, tag);
-		tag.addInterestedEdge(edge);
-		person.addInterestEdge(edge);
-//		edgesInterests.put(edge, edge);
+		tag.addInterestedPerson(person);
+		person.addInterestEdge(tag);
 	}
 	
 	public Node addPlace(long id) {
@@ -238,8 +234,7 @@ public class Database implements DB {
 	public void addPersonLocatedRelationship(long personID, long placeID) {
 		Node place = addPlace(placeID);
 		Person person = getPerson(personID);
-		Edge edge = new Edge(place, person);
-		person.addLocationEdge(edge);
+		person.addLocationEdge(place);
 	}
 	
 	public void addPlaceLocatedRelationship(long place1ID, long place2ID) {
@@ -266,14 +261,10 @@ public class Database implements DB {
 		Forum forum = forums.get(forumID);
 		if (forum == null) 
 			return;
-		Node person = persons.get(personID);
+		Person person = persons.get(personID);
 		for (Long tagID : forum.getTags()) {
 			Tag tag = tags.get(tagID);
-			Edge e = new Edge(person, tag);
-			if (edgesTagsForums.containsKey(e)) 
-				continue;
-			tag.addMemberForumEdge(e);
-			edgesTagsForums.put(e, e);				
+			tag.addMemberForumEdge(person);		
 		}
 	}
 }
