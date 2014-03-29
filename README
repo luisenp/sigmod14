@@ -1,0 +1,47 @@
+1. YeahGraphs
+
+2. Luis Pineda, lpineda@cs.umass.edu, University of Massachusetts Amherst, School of Computer Science, MS/PhD
+   James Atwood, jatwood@cs.umass.edu, University of Massachusetts Amherst, School of Computer Science, MS/PhD
+   
+3. Gerome Miklau
+
+4. Our database consists of the following hash indexed storage:
+
+    * Person (key id)
+    * Tag (key id)
+    * Place (key id)
+    * Place_Located_At (key id)
+    * Places_Named_As (key name)
+    * Person_Knows_Person (key edge)
+    
+    Techniques used:
+    
+    * Query1: A breadth first search (BFS) of the person_knows_person graph based on the constraint on number of replies x. 
+              Each (x,y) edge in this graph stores how many replies x and y have given to each other (these are stored 
+              while the data is loaded). Edges with less than x replies are pruned by the BFS. 
+
+    * Query2: Add all tags to a priority queue where the order of the tags is based on the size of the largest connected 
+              component of the induced graph. Each tag node stores a list of persons that are interested in the tag, and
+              each person node stores the birthday. With these the induced graph is created and the size of the connected
+              component is computed using a BFS. 
+              
+    * Query3: Places_Named_As is used to find all placeIDs with the given name. For each of these, find all persons 
+              located at p and add them to the induced graph. To find these persons, a person node stores all places where 
+              the person works/studies. For each of these places, Place_Located_At is used recursively to see if any place
+              in the resulting hierarchy is contained in the place specified by the query. If it does, the person is added
+              to the induced graph. 
+              
+              Then, the similarity score of all possible pairs of persons in this graph is computed and these are added to 
+              a priority queue. To speed up the similarity computation, tag nodes contain a hashset of the persons interested
+              in that tag node. Therefore the similarity between two persons can be computed in linear time on the number 
+              of interest tags.
+              
+     * Query4: First a linear search is used to find the tag with the given name. Then the induced graph of persons that are
+               member of forums with this tag is created. To speed up this task, each tag node has a list of all such persons
+               that is created when the data is first loaded. 
+               
+               On the induced graph the centrality score of each person is computed by using a BFS. Every time a node is 
+               expanding during the BFS, the algorithm checks if the best possible centrality this person can achieve is 
+               smaller than the k-th best centrality seen so far. If it is, the BFS is stopped. 
+               
+5. None
