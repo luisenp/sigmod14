@@ -21,5 +21,6 @@
 	<classpathentry kind="lib" path="lib/parboiled-scala_2.10-1.1.6.jar"/>
 	<classpathentry kind="lib" path="lib/scala-library-2.10.3.jar"/>
 	<classpathentry kind="lib" path="lib/server-api-2.0.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/lpineda/Documents/umass/courses/DB 645/project/sigmod14/lib/trove-3.1a1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
