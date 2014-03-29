@@ -6,3 +6,4 @@ data/
 target/
 queries/
 src/sigmod14/mem/Test*
+Sigmod14.jar

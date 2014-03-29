@@ -1,3 +1,3 @@
 #!/bin/bash
 
-java -Xms4096m -Xmx4096m -jar Sigmod14.jar $1 $2
+java -Xms16000m -Xmx16000m -jar Sigmod14.jar $1 $2
