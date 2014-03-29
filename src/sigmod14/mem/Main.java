@@ -14,7 +14,7 @@ public class Main {
 		DataLoader loader = DataLoader.INSTANCE;
 		loader.setCharset(charset);
 		QueryHandler qHandler = QueryHandler.INSTANCE;		
-		loader.setDataDirectory("data/outputDir-10k");
+		loader.setDataDirectory(args[0]);
 		
 		try {
 			long time = System.currentTimeMillis();
@@ -35,7 +35,7 @@ public class Main {
 		
 		try {
 			Scanner scanner = 
-				new Scanner(new File("data/queries/10k-queries.txt"), 
+				new Scanner(new File(args[1]), 
 						    charset);
 			while (scanner.hasNextLine()) {
 				String line = scanner.nextLine();
