@@ -1,0 +1,212 @@
+\documentclass{article}
+
+\usepackage{natbib}
+\usepackage{hyperref}
+
+\title{Project Proposal}
+
+\author{
+James Atwood and Luis Pineda \\ % alphabetical order
+}
+
+\begin{document}
+\maketitle
+
+We have been working on the SIGMOD 2014 programming challenge.  Briefly,
+in this challenge we are provided with a large (relational) social
+network data set and asked to implement four queries related to the
+graph structure of this data.  The motivation for choosing this
+project is twofold; first, there is a large (and quickly increasing)
+volume of graph-structured data available today, and second,
+developing efficient mechanisms for representing and querying graph
+data is a challenging research problem that is currently the subject
+of considerable interest in the database community.
+
+Traditionally, research in databases has focused on the relational
+model first proposed by Codd \cite{codd1970relational}.  This model
+becomes awkward and inefficient when applied to graph data
+\cite{rodriguez2011graph}, particularly for queries related to
+complex structure (i.e., requiring more than nearest neighbors).  For
+an example, please see \cite{he2008graphs} Figures 1 and 2.  More
+recent work has proposed other data models and query languages that
+more appropriately capture the rich structure evident in graph data;
+for instance,
+\cite{he2008graphs,sun2012efficient,low2010graphlab} (see
+\cite{angles2008survey} for a survey of recent graph database
+models).  
+
+%However, much of this work is task oriented; for example, a system
+%may optimize for path-related queries at the expense of subgraph
+%isomorphism.  For the task at hand, it is unclear which existing
+%technologies, if any, provide the best performance for the queries of
+%this challenge.
+
+Originally, we designed our implementation around the open-source
+Neo4j\footnote{\url{http://www.neo4j.org/}} disk-based graph database
+system.  We thought this system was appropriate because the queries in
+the challenge are largely path-oriented, and it is unlikely that all
+of the relevant data will fit in memory.  Neo4j makes use of the
+\emph{ADI} index structure \cite[Chapter~6]{IanRobinson:2013ul}
+described in \cite{wang2004scalable}, which is designed to facilitate
+efficient edge support checking (that is, quickly finding edges) and
+adjacent edge checking (that is, quickly finding edges that share a
+node).  This index structure seemed well-suited to the task at hand
+because it allows a graph on disk to be efficiently queried with
+regards to path.
+
+Our implementation of this approach performed very poorly, however.
+An implicit assumption of this design was that the high fixed cost of
+populating the graph database would be amortized over the large number
+of queries against the data.  Instead, we found that the runtime was
+dominated by reading and indexing the data rather than performing the
+queries.  It seems likely that this undesirable behavior will be found
+with other database systems; if fixed setup costs are amortized over
+the lifetime of a database system measured in years, the cost of
+establishing the database is trivial, so reducing this cost is likely
+not a design goal.
+
+
+%%% LUIS - please edit this %%%
+We turned our attention to a simpler key-value approach.
+Specifically, we indexed nodes and edges via a simple in-memory hash
+table.  This approach both reduced the time it took to index the data
+and improved the speed of the queries.
+
+%Accordingly, we propose the following approach.  Our primary data
+%abstraction will be an adjacency matrix over the nodes which
+%constitute a network.  The nodes will themselves be an interface for
+%the data provided by the challenge.  We will be investigating the
+%particulars of the implementation of the adjacency matrix and node
+%abstractions throughout the project. To be more concrete, a node could
+%be an object representing a person, with fields for attributes like
+%gender and age.  Or, a node could simply be a pointer to a query which
+%retrieves the node's data from disk.  The adjacency matrix could be a
+%simple $n$ by $n$ array, where $n$ is the total number of people in
+%the dataset.  This adjacency matrix representation scales poorly; we
+%will probably need to employ some sparse representation or other
+%compression mechanism to maintain this structure in memory, or
+%implement some mechanism for managing adjacency matrices that are only
+%partially stored in memory, such as the \emph{ADI} structure described
+%in \cite{wang2004scalable}. Finally, after developing appropriate
+%implementations of the node and matrix abstractions, we will focus on
+%developing efficient indexing and graph traversing mechanisms for
+%servicing the four types of query that are the subject of the SIGMOD
+%challenge.
+
+%Neo4j is a Java system, so our implementation language will be Java.
+%We will use the embedded interface of
+%Neo4j\footnote{\url{http://docs.neo4j.org/chunked/stable/tutorials-java-embedded.html}}
+%in order to construct an indexed graph database from the provided
+%data.  This database will be constructed and queried using the Core
+%API, which provides the lowest user-level abstractions in the Neo4j
+%system, and is generally faster than the higher-level Traversal and
+%Cypher APIs \cite[Chapter~6]{IanRobinson:2013ul}.
+
+%The following pseudocode demonstrates how we will use the disk-based
+%system to perform the first query, which finds the shortest path
+%between two people p1 and p2 who have replied to each other's comments
+%at least x times.
+
+
+%More specifically, our implementation language will be Java.  The
+%adjacency matrix representation will initially be implemented as a
+%sparse Colt
+%matrix \footnote{\url{http://acs.lbl.gov/software/colt/api/cern/colt/matrix/package-summary.html}}.
+
+Our current pipeline is as follows.  When the program starts, a one
+hash table for each edge and node type is populated.  These nodes
+include people, comments, tags, organizations, and others, found in
+files such as person.csv, comments.csv, and so forth. We then create
+necessary edges by iterating over x\_has\_y.csv files; for instance,
+to associate comments with their creators, we iterate over
+comment\_hasCreator\_person.csv and add edges from each person to each
+comment.  Note that only nodes and edges which are required in some
+way by the queries will be added to the database.
+
+%%% LUIS - is this still relevant? %%%
+
+Additionally, each node type is indexed by properties that are 
+relevant to the queries. Some examples are:
+
+
+\begin{itemize}
+\item Indexing tag nodes by id will be useful for performing efficient 
+lookups for query 2.
+\item Indexing organization and place nodes by id will be useful for 
+performing efficient lookups for query 3.
+\item Storing the number of common tags between two persons as part of 
+the KNOWS relationship can be useful for query 3.
+\item Indexing forums by id will be useful for performing efficient lookups 
+for query 4.
+\end{itemize}
+
+We implement each query is implemented as a graph algorithm over the graph defined
+by the indexed data.
+
+\textbf{Query1}: A breadth first search (BFS) of the
+person\_knows\_person graph based on the constraint on number of replies
+x.  Each (x,y) edge in this graph stores how many replies x and y have
+given to each other (these are stored while the data is loaded). Edges
+with less than x replies are pruned by the BFS.
+
+\textbf{Query2}: Add all tags to a priority queue where the order of
+the tags is based on the size of the largest connected component of
+the induced graph. Each tag node stores a list of persons that are
+interested in the tag, and each person node stores the birthday. With
+these the induced graph is created and the size of the connected
+component is computed using a BFS.
+              
+\textbf{Query3}: Places\_Named\_Asis used to find all placeIDs with
+the given name. For each of these, find all persons located at p and
+add them to the induced graph. To find these persons, a person node
+stores all places where the person works/studies. For each of these
+places, Place\_Located\_At is used recursively to see if any place in
+the resulting hierarchy is contained in the place specified by the
+query. If it does, the person is added to the induced graph.
+              
+Then, the similarity score of all possible pairs of persons in this
+graph is computed and these are added to a priority queue. To speed up
+the similarity computation, tag nodes contain a hashset of the persons
+interested in that tag node. Therefore the similarity between two
+persons can be computed in linear time on the number of interest tags.
+              
+\textbf{Query4}: First a linear search is used to find the tag with
+the given name. Then the induced graph of persons that are member of
+forums with this tag is created. To speed up this task, each tag node
+has a list of all such persons that is created when the data is first
+loaded.
+               
+On the induced graph the centrality score of each person is computed
+by using a BFS. Every time a node is expanding during the BFS, the
+algorithm checks if the best possible centrality this person can
+achieve is smaller than the k-th best centrality seen so far. If it
+is, the BFS is stopped.
+    
+We are ahead of schedule; all queries are implemented and we have
+submitted an implementation to Sigmod.  Our results can be seen on the
+leaderboard\footnote{\url{http://www.cs.albany.edu/~sigmod14contest/leaders.html}} under team name `spharg'.
+
+Progress on Project Milestones:
+\begin{itemize}
+\item Early March: Download datasets; setup Neo4j library;
+  design of pipeline; implementation of queries 1 and 2 on small test dataset. \textbf{DONE}
+\item March 20th: Implementation of queries 3 and 4 on small test dataset. \textbf{DONE}
+\item April 1st: Submit midterm report. \textbf{DONE}
+\item April 8th:  Run experiments with the larger dataset. \textbf{DONE} \\Refine the implementation to address scalability issues.
+\item April 15th: Submit system to SIGMOD if we have a competitive entry. \textbf{DONE}
+\item April 29th: Present results to class.
+\item May 8th: Final report.
+\end{itemize}
+
+We will devote our remaining time to improving performance and
+addressing scalability issues.  Our main idea is to use a disk-based
+extensible hash to index the nodes and edges over the original
+(unsorted) heap files\footnote{which implies we will be using
+  Alternative 3 for the index data entries.} so that we may avoid
+loading the entire dataset in to memory.  This index is appropriate
+because we are only concerned with equality searches.
+
+\bibliographystyle{abbrv}
+\bibliography{midterm}
+
+\end{document}
