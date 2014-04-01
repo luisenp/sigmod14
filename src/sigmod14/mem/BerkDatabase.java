@@ -2,29 +2,25 @@ package sigmod14.mem;
 
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 
-import org.mapdb.*;
-
-import sigmod14.mem.graph.Edge;
-import sigmod14.mem.graph.Forum;
 import sigmod14.mem.graph.KnowsEdge;
 import sigmod14.mem.graph.Node;
 import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
 
-
-
-public class MapDatabase implements DB {
-	public static final MapDatabase INSTANCE = new MapDatabase();
-	
-	// data storage
-		
+public class BerkDatabase implements DB {
+	public static final BerkDatabase INSTANCE = new BerkDatabase();
+	@Override
 	public DB instance() {
-		return INSTANCE;
+		// TODO Auto-generated method stub
+		return this.INSTANCE;
 	}
 	
+	private BerkDatabase() {
+		
+	}
+
 	@Override
 	public KnowsEdge findUndirectedEdge(Node n1, Node n2)
 			throws NotFoundException {
