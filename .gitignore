@@ -1,6 +1,9 @@
 proposal/*
 !proposal/tex
 !proposal/pdf
+midterm/*
+!midterm/tex
+!midterm/pdf
 bin/
 data/
 target/

@@ -1,7 +1,6 @@
 package sigmod14.mem.graph;
 
 import java.util.HashSet;
-import java.util.LinkedList;
 
 public class Tag extends Node {
 	private String name;
