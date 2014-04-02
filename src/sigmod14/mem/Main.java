@@ -43,8 +43,8 @@ public class Main {
 				String params[] = 
 					line.substring(7, line.length() - 1).split(", ");
 				if (queryType.equals("query1")) {
-					long p1 = Long.parseLong(params[0]); 
-					long p2 = Long.parseLong(params[1]);
+					int p1 = Integer.parseInt(params[0]); 
+					int p2 = Integer.parseInt(params[1]);
 					int x = Integer.parseInt(params[2]);
 					System.out.println(qHandler.query1(p1, p2, x));
 				} else if (queryType.equals("query2")) {

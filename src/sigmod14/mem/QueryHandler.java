@@ -25,19 +25,19 @@ public class QueryHandler {
 		this.db = db;
 	}
 	
-	private class TagComparator implements Comparator<Long> {
+	private class TagComparator implements Comparator<Integer> {
 		private long date;
-		private HashMap<Long, Integer> ranges;
+		private HashMap<Integer, Integer> ranges;
 		
 		TagComparator(long date) {
 			this.date = date;
-			ranges = new HashMap<Long, Integer>();
+			ranges = new HashMap<Integer, Integer>();
 		}
 		
 
-		private int getRangeTag(long tagID) {
+		private int getRangeTag(int tagID) {
 			if (ranges.containsKey(tagID)) return ranges.get(tagID);
-			HashSet<Long> vertices = new HashSet<Long>();
+			HashSet<Integer> vertices = new HashSet<Integer>();
 			Tag tag = db.getTag(tagID);
 			
 			// getting all the persons in the induced graph
@@ -56,21 +56,21 @@ public class QueryHandler {
 
 			// finding size of largest component using multiple DFS
 			int score = 0;
-			HashSet<Long> visited = new HashSet<Long>();
-			for (Long id : vertices) {
+			HashSet<Integer> visited = new HashSet<Integer>();
+			for (Integer id : vertices) {
 				if (visited.contains(id)) continue;
 				int sizeComp = 0;
-				LinkedList<Long> stack = new LinkedList<Long> ();
+				LinkedList<Integer> stack = new LinkedList<Integer> ();
 				stack.add(id);
 				while (!stack.isEmpty()) {
-					Long personID = stack.removeFirst();
+					int personID = stack.removeFirst();
 					if (visited.contains(personID)) continue;
 					visited.add(personID);
 					sizeComp++;
 					Person person = db.getPerson(personID);
 					for (Edge ae : person.getKnows()) {
 						KnowsEdge edge = (KnowsEdge) ae;
-						Long idAdjPerson = edge.getOtherNode(person).getId();
+						int idAdjPerson = edge.getOtherNode(person).getId();
 						if (!vertices.contains(idAdjPerson)) continue;
 						stack.addFirst(idAdjPerson);
 					}
@@ -81,7 +81,7 @@ public class QueryHandler {
 			return score;
 		}
 		
-		public int compare(Long tag1ID, Long tag2ID) {		
+		public int compare(Integer tag1ID, Integer tag2ID) {		
 			Integer score1 = getRangeTag(tag1ID);
 			Integer score2 = getRangeTag(tag2ID);
 			int comp = score1.compareTo(score2);
@@ -203,7 +203,7 @@ public class QueryHandler {
 		
 	// does a BFS on the induced graph, starting from p1 and counting the
 	// steps to reach p2
-	public String query1(long p1, long p2, int x) {
+	public String query1(int p1, int p2, int x) {
 		Person goal = db.getPerson(p2);
 		if (goal == null) return "-1";
 		LinkedList<Person> queue = new LinkedList<Person> ();
@@ -236,9 +236,9 @@ public class QueryHandler {
 		Date date = DataLoader.INSTANCE.sdf.parse(d + ":00:00:00");
 		
 		// priority queue according to the tag range
-		PriorityQueue<Long> pq = 
-			new PriorityQueue<Long> (k + 1, new TagComparator(date.getTime()));
-		for (Long tagID : db.getAllTags()) {
+		PriorityQueue<Integer> pq = 
+			new PriorityQueue<Integer> (k + 1, new TagComparator(date.getTime()));
+		for (int tagID : db.getAllTags()) {
 			pq.add(tagID);
 			if (pq.size() > k) pq.poll();
 		} 
@@ -259,10 +259,10 @@ public class QueryHandler {
 		return topTags;
 	}
 	
-	private boolean personIsLocatedAt(long personID, long placeID) {
+	private boolean personIsLocatedAt(int personID, int placeID) {
 		Person person = db.getPerson(personID);
 		for (Node location : person.getLocations()) {
-			Long tmpPlace = location.getId();
+			Long tmpPlace = (long) location.getId();
 			do {
 				if (tmpPlace == placeID) return true;
 				tmpPlace = db.getPlaceLocation(tmpPlace);
@@ -274,10 +274,12 @@ public class QueryHandler {
 	public String query3(int k, int hops, String placeName) {
 		// finding all persons at placeName
 		String placeIDs[] = db.getPlacesNamed(placeName).split(" ");
-		HashSet<Long> personsAtPlace = new HashSet<Long> ();
+		HashSet<Integer> personsAtPlace = new HashSet<Integer> ();
 		for (String s: placeIDs) {
-			Long placeID = Long.parseLong(s);
-			for (Long personID : db.getAllPersons()) {
+			Integer placeID = Integer.parseInt(s);
+			Person persons[] = db.getAllPersons();
+			for (int personID = 0; personID < persons.length; personID++) {
+				if (persons[personID] == null) continue;
 				if (personIsLocatedAt(personID, placeID)) 
 					personsAtPlace.add(personID);
 			}
@@ -287,11 +289,11 @@ public class QueryHandler {
 		// hops + 1 steps away
 		PriorityQueue<PersonPair> pq = 
 			new PriorityQueue<PersonPair>(k + 1, new PersonPairComparator()); 
-		for (Long idP1 : personsAtPlace) {
+		for (Integer idP1 : personsAtPlace) {
 			Person p1 = db.getPerson(idP1);
 			LinkedList<Person> queue = new LinkedList<Person>();
 			LinkedList<Integer> dist = new LinkedList<Integer>();
-			HashSet<Long> visited = new HashSet<Long>();
+			HashSet<Integer> visited = new HashSet<Integer>();
 			queue.addFirst(p1);
 			dist.addFirst(0);
 			// does a BFS with depth-limit = hops 
@@ -344,7 +346,7 @@ public class QueryHandler {
 	public String query4(int k, String tagName) {
 		// finding the tag with the given name
 		Tag tag = null;
-		for (Long idTag : db.getAllTags()) {
+		for (int idTag : db.getAllTags()) {
 			Tag node = db.getTag(idTag);
 			try {
 				if (db.getTagName(idTag).equals(tagName)) {

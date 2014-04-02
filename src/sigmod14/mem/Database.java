@@ -25,23 +25,24 @@ public class Database implements DB {
 	}
 		
 	// data storage
-	private HashMap<Long,Person> persons;
-	private HashMap<Long,Tag> tags;
-	private HashMap<Long,Node> places;
+	Person persons[];
+	private HashMap<Integer,Tag> tags;
+	private HashMap<Integer,Node> places;
+	private HashMap<Integer,Forum> forums;
+	
 	private HashMapLong commentCreator;
 	private HashMapLong placeOrg;
 	private HashMapLong placeLocatedAtPlace;
 	private HashMap<String,String> namePlaces;
-	private HashMap<Long,Forum> forums;
 
 	private HashMap<Edge,Edge> knowsEdges;
 	
 	// private constructor to instantiate public INSTANCE
 	private Database() {
-		persons = new HashMap<Long,Person> (100000);
-		tags = new HashMap<Long,Tag> (100000);
-		places = new HashMap<Long,Node> (10000);
-		forums = new HashMap<Long,Forum> (10000);
+		persons = new Person[10001];
+		tags = new HashMap<Integer,Tag> (100000);
+		places = new HashMap<Integer,Node> (10000);
+		forums = new HashMap<Integer,Forum> (10000);
 
 		commentCreator = new HashMapLong(4999999);
 		placeOrg = new HashMapLong(10007);
@@ -75,41 +76,41 @@ public class Database implements DB {
 	}
 	
 	public Person getCommentCreator(long id) {
-		return persons.get(commentCreator.get(id));
+		return persons[(int) commentCreator.get(id)];
 	}
 	
-	public boolean containsPerson(long id) {
-		return persons.containsKey(id);
+	public boolean containsPerson(int id) {
+		return persons[id] != null;
 	}
 	
-	public Person addPerson(long id) {
+	public Person addPerson(int id) {
 		if (!containsPerson(id)) {
 			Person person = new Person(id);
-			persons.put(id, person);
+			persons[id] = person;
 			return person;
 		} else {
-			return persons.get(id);
+			return persons[id];
 		}
 	}
 	
-	public Person addPerson(long id, Date birthday) {
+	public Person addPerson(int id, Date birthday) {
 		if (!containsPerson(id)) {
 			Person person = new Person(id, birthday.getTime());
-			persons.put(id, person);
+			persons[id] = person;
 			return person;
 		} else {
-			Person person = persons.get(id);
+			Person person = persons[id];
 			person.setBirthday(birthday.getTime());
 			return person;
 		}
 	}
 	
-	public Person getPerson(long id) {
-		return persons.get(id);
+	public Person getPerson(int id) {
+		return persons[id];
 	}
 	
-	public Collection<Long> getAllPersons() {
-		return persons.keySet();
+	public Person[] getAllPersons() {
+		return persons;
 	}
 	
 	public void addReply(long replyID, long repliedToID) {
@@ -130,7 +131,7 @@ public class Database implements DB {
 			edge.incRepIn();
 	}
 	
-	public void addKnowsRelationship(long person1ID, long person2ID) {
+	public void addKnowsRelationship(int person1ID, int person2ID) {
 		Person person1 = addPerson(Math.min(person1ID, person2ID));
 		Person person2 = addPerson(Math.max(person1ID, person2ID));
 		KnowsEdge edge = new KnowsEdge(person1, person2);			
@@ -143,7 +144,7 @@ public class Database implements DB {
 		knowsEdges.put(edge, edge);
 	}
 
-	public Tag addTag(long id) {
+	public Tag addTag(int id) {
 		if (!tags.containsKey(id)) {
 			Tag tag = new Tag(id);
 			tags.put(id, tag);
@@ -154,7 +155,7 @@ public class Database implements DB {
 		}
 	}
 	
-	public Tag addTag(long id, String name) {
+	public Tag addTag(int id, String name) {
 		if (!tags.containsKey(id)) {
 			Tag tag = new Tag(id, name);
 			tags.put(id, tag);
@@ -166,26 +167,26 @@ public class Database implements DB {
 		}
 	}
 	
-	public Tag getTag(long id) {
+	public Tag getTag(int id) {
 		return tags.get(id);
 	}
 	
-	public String getTagName(long id) throws NotFoundException {		
+	public String getTagName(int id) throws NotFoundException {		
 		return tags.get(id).getName(); 
 	}
 	
-	public Collection<Long> getAllTags() {
+	public Collection<Integer> getAllTags() {
 		return tags.keySet();
 	}
 	
-	public void addInterestRelationship(long personID, long tagID) {
+	public void addInterestRelationship(int personID, int tagID) {
 		Person person = addPerson(personID);
 		Tag tag = addTag(tagID);
 		tag.addInterestedPerson(person);
 		person.addInterestEdge(tag);
 	}
 	
-	public Node addPlace(long id) {
+	public Node addPlace(int id) {
 		if (!places.containsKey(id)) {
 			Node place = new Node(id);
 			places.put(id, place);
@@ -196,7 +197,7 @@ public class Database implements DB {
 		}
 	}
 	
-	public Node addPlaceNamed(String name, long id) {
+	public Node addPlaceNamed(String name, int id) {
 		if (!places.containsKey(id)) {
 			Node place = new Node(id);
 			places.put(id, place);
@@ -231,7 +232,7 @@ public class Database implements DB {
 		return placeOrg.containsKey(id);
 	}
 	
-	public void addPersonLocatedRelationship(long personID, long placeID) {
+	public void addPersonLocatedRelationship(int personID, int placeID) {
 		Node place = addPlace(placeID);
 		Person person = getPerson(personID);
 		person.addLocationEdge(place);
@@ -246,23 +247,23 @@ public class Database implements DB {
 		return place == -1? null : place;
 	}
 	
-	public void addForumTagRelationship(long forumID, long tagID) {
+	public void addForumTagRelationship(int forumID, int tagID) {
 		if (!forums.containsKey(forumID))
 			forums.put(forumID, new Forum(forumID));
 		Forum forum = forums.get(forumID);
 		forum.addTagEdge(tagID);		
 	}
 	
-	public boolean containsForum(long forumID) {
+	public boolean containsForum(int forumID) {
 		return forums.containsKey(forumID);
 	}
 	
-	public void addInterestAllForumTags(long personID, long forumID) {
+	public void addInterestAllForumTags(int personID, int forumID) {
 		Forum forum = forums.get(forumID);
 		if (forum == null) 
 			return;
-		Person person = persons.get(personID);
-		for (Long tagID : forum.getTags()) {
+		Person person = persons[personID];
+		for (Integer tagID : forum.getTags()) {
 			Tag tag = tags.get(tagID);
 			tag.addMemberForumEdge(person);		
 		}

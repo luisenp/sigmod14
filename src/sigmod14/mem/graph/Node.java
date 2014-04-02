@@ -2,13 +2,13 @@ package sigmod14.mem.graph;
 
 
 public class Node {
-	protected long id;
+	protected int id;
 	
-	public Node(long id) {
+	public Node(int id) {
 		this.id = id;
 	}
 	
-	public long getId() {
+	public int getId() {
 		return id;
 	}
 	
@@ -17,7 +17,7 @@ public class Node {
 	}
 	
 	public int hashCode() {
-		return (int) id;
+		return id;
 	}
 	
 	public String toString() {

@@ -112,8 +112,8 @@ public class DataLoader {
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");			
-			Long person1ID = Long.parseLong(fields[0]);
-			Long person2ID = Long.parseLong(fields[1]);
+			Integer person1ID = Integer.parseInt(fields[0]);
+			Integer person2ID = Integer.parseInt(fields[1]);
 			db.addKnowsRelationship(person1ID, person2ID);
 		}
 		scanner.close();
@@ -127,7 +127,7 @@ public class DataLoader {
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
-			Long id = Long.parseLong(fields[0]);
+			Integer id = Integer.parseInt(fields[0]);
 			Date birthday = sdf.parse(fields[4] + ":00:00:00");
 			db.addPerson(id, birthday);
 		}
@@ -144,7 +144,7 @@ public class DataLoader {
 
 			// if creator is not already in DB then there is no point
 			// in storing this comment because creator doesn't know anyone
-			Long personID = Long.parseLong(fields[1]);
+			Integer personID = Integer.parseInt(fields[1]);
 			if (!db.containsPerson(personID)) continue;
 			
 			Long commentID = Long.parseLong(fields[0]);
@@ -160,7 +160,7 @@ public class DataLoader {
 		while (scanner.hasNextLine()) {			
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
-			Long id = Long.parseLong(fields[0]);
+			Integer id = Integer.parseInt(fields[0]);
 			String name = fields[1];
 			db.addTag(id, name);		
 		}
@@ -174,8 +174,8 @@ public class DataLoader {
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");			
-			Long personID = Long.parseLong(fields[0]);			
-			Long tagID = Long.parseLong(fields[1]);
+			Integer personID = Integer.parseInt(fields[0]);			
+			Integer tagID = Integer.parseInt(fields[1]);
 			db.addInterestRelationship(personID, tagID);
 		}
 		scanner.close();
@@ -188,7 +188,7 @@ public class DataLoader {
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();			
 			String[] fields = line.split("\\|");
-			Long idPlace = Long.parseLong(fields[0]);
+			Integer idPlace = Integer.parseInt(fields[0]);
 			String name = fields[1];
 			db.addPlaceNamed(name, idPlace);
 		}
@@ -217,10 +217,10 @@ public class DataLoader {
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
-			Long personID = Long.parseLong(fields[0]);
+			Integer personID = Integer.parseInt(fields[0]);
 			if (!db.containsPerson(personID)) 
 				continue;	// person must know other persons
-			Long placeID = Long.parseLong(fields[1]);
+			Integer placeID = Integer.parseInt(fields[1]);
 			db.addPersonLocatedRelationship(personID, placeID);
 			
 		}
@@ -242,14 +242,14 @@ public class DataLoader {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
 			
-			Long personID = Long.parseLong(fields[0]);
+			Integer personID = Integer.parseInt(fields[0]);
 			if (!db.containsPerson(personID)) 
 				continue;	// person doesn't know other persons
 			
 			Long orgID = Long.parseLong(fields[1]);
 			if (!db.containsPlaceOrg(orgID))
 				continue;	// no place for this organization
-			Long placeID = db.getPlaceOrg(orgID);
+			int placeID = (int) db.getPlaceOrg(orgID);
 			db.addPersonLocatedRelationship(personID, placeID);
 		}
 		scanner.close();
@@ -276,8 +276,8 @@ public class DataLoader {
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] fields = line.split("\\|");
-			Long forumID = Long.parseLong(fields[0]);
-			Long tagID = Long.parseLong(fields[1]);
+			Integer forumID = Integer.parseInt(fields[0]);
+			Integer tagID = Integer.parseInt(fields[1]);
 			db.addForumTagRelationship(forumID, tagID);
 		}
 		scanner.close();
@@ -290,8 +290,8 @@ public class DataLoader {
 		String line = br.readLine();
 		while ((line = br.readLine()) != null) {
 			String[] fields = line.split("\\|");
-			Long forumID = Long.parseLong(fields[0]);
-			Long personID = Long.parseLong(fields[1]);
+			Integer forumID = Integer.parseInt(fields[0]);
+			Integer personID = Integer.parseInt(fields[1]);
 			db.addInterestAllForumTags(personID, forumID);
 		}
 		br.close();

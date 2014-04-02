@@ -7,14 +7,14 @@ public class Tag extends Node {
 	HashSet<Person> interested;
 	HashSet<Person> membersForums;
 	
-	public Tag(long id) {
+	public Tag(int id) {
 		super(id);
 		name = null;
 		interested = new HashSet<Person>();
 		membersForums = new HashSet<Person>();
 	}
 	
-	public Tag(long id, String name) {
+	public Tag(int id, String name) {
 		this(id);
 		this.name = name;
 	}

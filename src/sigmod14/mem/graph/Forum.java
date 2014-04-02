@@ -3,18 +3,18 @@ package sigmod14.mem.graph;
 import java.util.LinkedList;
 
 public class Forum extends Node {
-	LinkedList<Long> tags;
+	LinkedList<Integer> tags;
 	
-	public Forum(long id) {
+	public Forum(int id) {
 		super(id);
-		tags = new LinkedList<Long> ();
+		tags = new LinkedList<Integer> ();
 	}
 
-	public void addTagEdge(long tagID) {
+	public void addTagEdge(int tagID) {
 		tags.add(tagID);
 	}
 	
-	public LinkedList<Long> getTags() {
+	public LinkedList<Integer> getTags() {
 		return tags;
 	}
 }

@@ -9,11 +9,11 @@ public class Person extends Node {
 	private LinkedList<Tag> interests;
 	private LinkedList<Node> locations;
 	
-	public Person(long id) {
+	public Person(int id) {
 		this(id, -123456789012345678L);
 	}
 
-	public Person(long id, long birthday) {
+	public Person(int id, long birthday) {
 		super(id);
 		this.birthday = birthday;
 		knows = new LinkedList<KnowsEdge>();
