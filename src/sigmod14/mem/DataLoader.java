@@ -269,16 +269,28 @@ public class DataLoader {
 		reader.close();
 	}
 
-	// this method assumes loadForumTag() was called before
+//	// this method assumes loadForumTag() was called before
+//	private void loadForumMember() throws IOException {
+//		FastFileIterator reader = new FastFileIterator(dataDir + forumMemberFName + ".csv");			
+//
+//		while (reader.hasNext()) {
+//			
+//			Long forumID = reader.next();
+//			Long personID = reader.next();
+//			db.addInterestAllForumTags(personID, forumID);
+//		}
+//		reader.close();
+//	}
 	private void loadForumMember() throws IOException {
-		FastFileIterator reader = new FastFileIterator(dataDir + forumMemberFName + ".csv");			
-
-		while (reader.hasNext()) {
-			
-			Long forumID = reader.next();
-			Long personID = reader.next();
+		File file = new File(dataDir + forumMemberFName + ".csv");			
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		String line = br.readLine();
+		while ((line = br.readLine()) != null) {
+			String[] fields = line.split("\\|");
+			Long forumID = Long.parseLong(fields[0]);
+			Long personID = Long.parseLong(fields[1]);
 			db.addInterestAllForumTags(personID, forumID);
 		}
-		reader.close();
+		br.close();
 	}
 }
