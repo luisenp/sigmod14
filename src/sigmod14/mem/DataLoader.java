@@ -1,10 +1,14 @@
 package sigmod14.mem;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -14,6 +18,8 @@ import java.util.Scanner;
 
 public class DataLoader {	
 	public static final DataLoader INSTANCE = new DataLoader(Database.INSTANCE);
+	
+	private int pagesize = 1024 * 8;
 	
 	private Database db;
 	
@@ -84,25 +90,18 @@ public class DataLoader {
 	}
 	
 	private void loadCommentReplyTo() throws IOException {
-		String file = dataDir + commentReplyFName + ".csv";
-		BufferedReader br = new BufferedReader(new FileReader(file));
-		String line = br.readLine();
-		while ((line = br.readLine()) != null) {
-			String[] fields = line.split("\\|");
-
-			// (*) reply will already be on DB iff it has a creator who knows
-			//     someone. Otherwise it is useless for query1
-			Long replyID = Long.parseLong(fields[0]);
-			if (!db.commentHasCreator(replyID))
-				continue;
-			
-			Long repliedToID = Long.parseLong(fields[1]);
+		String filename = dataDir + commentReplyFName + ".csv";
+		FastFileIterator reader = new FastFileIterator(filename);
+		long replyID;
+		long repliedToID;
+		while(reader.hasNext()) {
+			replyID = reader.next();
+			repliedToID = reader.next();
 			if (!db.commentHasCreator(repliedToID)) 
-				continue; // see (*) above
-			
-			db.addReply(replyID, repliedToID);	
+				continue;
+			db.addReply(replyID, repliedToID);
 		}
-		br.close();
+		reader.close();
 	}
 
 	private void loadPersonKnowsPerson() throws FileNotFoundException {
