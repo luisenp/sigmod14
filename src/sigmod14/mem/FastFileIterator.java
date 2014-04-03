@@ -8,26 +8,30 @@ public class FastFileIterator {
 	private RandomAccessFile file;
 	private byte[][] page = new byte[2][pagesize];
 	private int currentPage = 0;
+	private int currentPageLength = 0;
 	private boolean morefile = true;
 	private int loc = 0;
 	public FastFileIterator(String filename) throws IOException {
 		this.file = new RandomAccessFile(filename,"r");
-		this.morefile = (-1 != file.read(page[0]));
+		this.currentPageLength = file.read(page[0]);
+		this.morefile = (-1 != this.currentPageLength);
 		//burn the first line
 		while(page[currentPage][loc++] != '\n') {}
 	}
 	
 	private void readPage() throws IOException {
-		 morefile = (-1 != file.read(page[1-currentPage]));
-		 currentPage = 1 - currentPage;
-		 loc = 0;
+		currentPageLength = file.read(page[1-currentPage]);	
+		morefile = (-1 != currentPageLength);
+		currentPage = 1 - currentPage;
+		loc = 0;
 	}
 	
 	public long next() throws IOException {
-		long result = 0;
+		Long result = new Long(0);
 		while (hasNext()) {
-			if(loc == pagesize) {
+			if(loc == currentPageLength) {
 				readPage();
+				continue;
 			}
 			if(page[currentPage][loc] == '\n' || page[currentPage][loc]  == '|' ) {
 				loc++;
@@ -40,7 +44,7 @@ public class FastFileIterator {
 	}
 	
 	public boolean hasNext() {
-		return !(morefile && loc == pagesize); 
+		return !(!morefile && loc >= currentPageLength); 
 	}
 	
 	public void close() throws IOException {

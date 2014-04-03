@@ -92,11 +92,10 @@ public class DataLoader {
 	private void loadCommentReplyTo() throws IOException {
 		String filename = dataDir + commentReplyFName + ".csv";
 		FastFileIterator reader = new FastFileIterator(filename);
-		long replyID;
-		long repliedToID;
+		
 		while(reader.hasNext()) {
-			replyID = reader.next();
-			repliedToID = reader.next();
+			long replyID = reader.next();
+			long repliedToID = reader.next();
 			if (!db.commentHasCreator(repliedToID)) 
 				continue;
 			db.addReply(replyID, repliedToID);
