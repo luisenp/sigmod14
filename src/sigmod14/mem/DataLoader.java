@@ -103,21 +103,30 @@ public class DataLoader {
 		reader.close();
 	}
 
-	private void loadPersonKnowsPerson() throws FileNotFoundException {
-		Scanner scanner = new Scanner(new File(dataDir + personKnows + ".csv"),
-				                      charset);
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			String[] fields = line.split("\\|");			
-			Long person1ID = Long.parseLong(fields[0]);
-			Long person2ID = Long.parseLong(fields[1]);
+	private void loadPersonKnowsPerson() throws IOException {
+		FastFileIterator reader = new FastFileIterator(dataDir + personKnows + ".csv");
+		
+		while(reader.hasNext()) {
+			Long person1ID = reader.next();
+			Long person2ID = reader.next();
 			db.addKnowsRelationship(person1ID, person2ID);
 		}
-		scanner.close();
+		reader.close();
 	}
 
 
+//	private void loadPersons() throws ParseException, IOException {
+//		FastFileIterator reader = new FastFileIterator(dataDir + personFName + ".csv");
+//		
+//		while (reader.hasNext()) {
+//			Long id = reader.next();
+//			for(int i = 0; i < 2 ; i++)
+//				reader.next();
+//			Date birthday = sdf.parse(reader.next() + ":00:00:00");
+//			db.addPerson(id, birthday);
+//		}
+//		reader.close();
+//	}
 	private void loadPersons() throws FileNotFoundException, ParseException {
 		String file = dataDir + personFName + ".csv";
 		Scanner scanner = new Scanner(new File(file), charset);
@@ -134,21 +143,20 @@ public class DataLoader {
 
 	// this method assumes loadPersonKnowsPerson() has already been called
 	private void loadCommentsCreator() throws IOException {
-		String file = dataDir + commentCreatorFName + ".csv";
-		BufferedReader br = new BufferedReader(new FileReader(file));
-		String line = br.readLine();
-		while ((line = br.readLine()) != null) {
-			String[] fields = line.split("\\|");
+		FastFileIterator reader = new FastFileIterator(dataDir + commentCreatorFName + ".csv");
+		while (reader.hasNext()) {
+			
 
 			// if creator is not already in DB then there is no point
 			// in storing this comment because creator doesn't know anyone
-			Long personID = Long.parseLong(fields[1]);
+			Long commentID = reader.next();
+			Long personID = reader.next();
+			
 			if (!db.containsPerson(personID)) continue;
 			
-			Long commentID = Long.parseLong(fields[0]);
 			db.addCommentCreator(commentID, personID);		
 		}
-		br.close();
+		reader.close();
 	}
 	
 	private void loadTags() throws FileNotFoundException {
@@ -165,18 +173,15 @@ public class DataLoader {
 		scanner.close();
 	}
 		
-	private void loadPersonsInterest() throws FileNotFoundException {
-		String file = dataDir + personTagFName + ".csv";
-		Scanner scanner = new Scanner(new File(file), charset);
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			String[] fields = line.split("\\|");			
-			Long personID = Long.parseLong(fields[0]);			
-			Long tagID = Long.parseLong(fields[1]);
+	private void loadPersonsInterest() throws IOException {
+		FastFileIterator reader = new FastFileIterator(dataDir + personTagFName + ".csv");
+		
+		while (reader.hasNext()) {
+			Long personID = reader.next();			
+			Long tagID = reader.next();
 			db.addInterestRelationship(personID, tagID);
 		}
-		scanner.close();
+		reader.close();
 	}
 
 	private void loadPlaces() throws FileNotFoundException {
@@ -193,105 +198,87 @@ public class DataLoader {
 		scanner.close();
 	}
 	
-	private void loadOrganizationsPlace() throws FileNotFoundException {
-		File file = new File(dataDir + orgLocFName + ".csv");
-		Scanner scanner = new Scanner(file, charset);
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {			
-			String line = scanner.nextLine();
-			String[] fields = line.split("\\|");
-			Long orgID = Long.parseLong(fields[0]);
-			Long placeID = Long.parseLong(fields[1]);
+	private void loadOrganizationsPlace() throws IOException {
+		FastFileIterator reader = new FastFileIterator(dataDir + orgLocFName + ".csv");
+		
+		while (reader.hasNext()) {			
+			
+			Long orgID = reader.next();
+			Long placeID = reader.next();
 			db.addPlaceOrg(orgID, placeID);
 		}
-		scanner.close();		
+		reader.close();		
 	}
 	
 	// this method assumes loadPersonKnowsPerson() has already been called
-	private void loadPersonsPlace() throws FileNotFoundException {
-		String file = dataDir + personLocation + ".csv";
-		Scanner scanner = new Scanner(new File(file), charset);
-		scanner.nextLine();		
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			String[] fields = line.split("\\|");
-			Long personID = Long.parseLong(fields[0]);
+	private void loadPersonsPlace() throws IOException {
+		FastFileIterator reader = new FastFileIterator(dataDir + personLocation + ".csv");
+		
+		while (reader.hasNext()) {
+			Long personID = reader.next();
+			Long placeID = reader.next();
 			if (!db.containsPerson(personID)) 
 				continue;	// person must know other persons
-			Long placeID = Long.parseLong(fields[1]);
 			db.addPersonLocatedRelationship(personID, placeID);
 			
 		}
-		scanner.close();
+		reader.close();
 	}
 	
-	private void loadPersonWorkStudy() throws FileNotFoundException {
+	private void loadPersonWorkStudy() throws IOException {
 		loadPersonsOrg(personWorkFName);
 		loadPersonsOrg(personStudyFName);
 	}
 	
 	// this method assumes loadPersonKnowsPerson() and loadOrganizationsPlace()
 	// have already been called
-	private void loadPersonsOrg(String fileName) throws FileNotFoundException {
-		String file = dataDir + fileName + ".csv";
-		Scanner scanner = new Scanner(new File(file), charset);
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			String[] fields = line.split("\\|");
-			
-			Long personID = Long.parseLong(fields[0]);
+	private void loadPersonsOrg(String fileName) throws IOException {
+		FastFileIterator reader = new FastFileIterator(dataDir + fileName + ".csv");
+		
+		while (reader.hasNext()) {
+			Long personID = reader.next();
+			Long orgID = reader.next();
 			if (!db.containsPerson(personID)) 
 				continue;	// person doesn't know other persons
 			
-			Long orgID = Long.parseLong(fields[1]);
 			if (!db.containsPlaceOrg(orgID))
 				continue;	// no place for this organization
 			Long placeID = db.getPlaceOrg(orgID);
 			db.addPersonLocatedRelationship(personID, placeID);
 		}
-		scanner.close();
+		reader.close();
 	}
 	
-	private void loadPlaceAtPlace() throws FileNotFoundException {
-		File file = new File(dataDir + placePlaceFName + ".csv");
-		Scanner scanner = new Scanner(file, charset);
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {			
-			String line = scanner.nextLine();
-			String[] fields = line.split("\\|");
-			Long place1ID = Long.parseLong(fields[0]);
-			Long place2ID = Long.parseLong(fields[1]);
+	private void loadPlaceAtPlace() throws IOException {
+		FastFileIterator reader = new FastFileIterator(dataDir + placePlaceFName + ".csv");
+		while (reader.hasNext()) {			
+			Long place1ID = reader.next();
+			Long place2ID = reader.next();
 			db.addPlaceLocatedRelationship(place1ID, place2ID);
 		}
-		scanner.close();
+		reader.close();
 	}
 	
-	private void loadForumTag() throws FileNotFoundException {
-		File file = new File(dataDir + forumTagFName + ".csv");
-		Scanner scanner = new Scanner(file, charset);
-		scanner.nextLine();
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			String[] fields = line.split("\\|");
-			Long forumID = Long.parseLong(fields[0]);
-			Long tagID = Long.parseLong(fields[1]);
+	private void loadForumTag() throws IOException {
+		FastFileIterator reader = new FastFileIterator(dataDir + forumTagFName + ".csv");
+		while (reader.hasNext()) {
+			Long forumID = reader.next();
+			Long tagID = reader.next();
 			db.addForumTagRelationship(forumID, tagID);
 		}
-		scanner.close();
+		reader.close();
 	}
 
 	// this method assumes loadForumTag() was called before
 	private void loadForumMember() throws IOException {
-		File file = new File(dataDir + forumMemberFName + ".csv");			
-		BufferedReader br = new BufferedReader(new FileReader(file));
-		String line = br.readLine();
-		while ((line = br.readLine()) != null) {
-			String[] fields = line.split("\\|");
-			Long forumID = Long.parseLong(fields[0]);
-			Long personID = Long.parseLong(fields[1]);
+		FastFileIterator reader = new FastFileIterator(dataDir + forumMemberFName + ".csv");			
+
+		while (reader.hasNext()) {
+			
+			Long forumID = reader.next();
+			Long personID = reader.next();
 			db.addInterestAllForumTags(personID, forumID);
 		}
-		br.close();
+		reader.close();
 	}
 }
