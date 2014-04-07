@@ -15,15 +15,23 @@ import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
 
-public class QueryHandler {
-	public static final QueryHandler INSTANCE = 
-				new QueryHandler(Database.INSTANCE);
-	
+public class QueryHandler implements Runnable {
 	private Database db;
+	private LinkedList<String> queries;
+	private LinkedList<String> answers;
 	
-	private QueryHandler(Database db) {
-		this.db = db;
+	public static enum QueryType {
+		TYPE1,
+		TYPE2,
+		TYPE3,
+		TYPE4
 	}
+	
+	public QueryHandler(Database db, LinkedList<String> queries) {
+		this.db = db;
+		this.queries = queries;
+		answers = new LinkedList<String> ();
+	}	
 	
 	private class TagComparator implements Comparator<Integer> {
 		private long date;
@@ -410,5 +418,56 @@ public class QueryHandler {
 		}
 		return queryAns;
 	}
+
+	public void solveQueries() {
+		for (String query : queries) {
+			QueryType type = getQueryType(query);
+			String params[] = 
+				query.substring(7, query.length() - 1).split(", ");
+			if (type.equals(QueryType.TYPE1)) {
+				int p1 = Integer.parseInt(params[0]); 
+				int p2 = Integer.parseInt(params[1]);
+				int x = Integer.parseInt(params[2]);
+				answers.add(query1(p1, p2, x));
+			} else if (type.equals(QueryType.TYPE2)) {
+				int k = Integer.parseInt(params[0]);
+				try {
+					answers.add(query2(k, params[1]));
+				} catch (ParseException e) {
+					e.printStackTrace();
+				}
+			} else if (type.equals(QueryType.TYPE3)) {
+				int k = Integer.parseInt(params[0]);
+				int hops = Integer.parseInt(params[1]);
+				answers.add(query3(k, hops, params[2]));
+			} else if (type.equals(QueryType.TYPE4)) {
+				int k = Integer.parseInt(params[0]);
+				answers.add(query4(k, params[1]));
+			}			
+		}
+	}
 	
+	public void run() {
+		solveQueries();
+	}
+	
+	public void printAnswers() {
+		for (String s : answers) {
+			System.out.println(s);
+		}
+	}
+	
+	public static QueryType getQueryType(String query) {
+		String type = query.substring(0, 6);
+		if (type.equals("query1")) {
+			return QueryType.TYPE1;
+		} else if (type.equals("query2")) {
+			return QueryType.TYPE2;
+		} else if (type.equals("query3")) {
+			return QueryType.TYPE3;
+		} else if (type.equals("query4")) {
+			return QueryType.TYPE4;
+		}			
+		return null;
+	}
 }

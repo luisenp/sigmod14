@@ -4,7 +4,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Scanner;
+
+import sigmod14.mem.QueryHandler.QueryType;
 
 // TODO The singleton design seems ugly. Consider changing later
 // TODO Consider dedicated nodes and edges depending on the type
@@ -12,15 +16,14 @@ public class Main {
 	public static void main(String[] args) {
 		String charset = "UTF-8"; // "ISO-8859-1"; //       
 		DataLoader loader = DataLoader.INSTANCE;
-		loader.setCharset(charset);
-		QueryHandler qHandler = QueryHandler.INSTANCE;		
+		loader.setCharset(charset);				
 		loader.setDataDirectory(args[0]);
 		
 		try {
 			long time = System.currentTimeMillis();
 			loader.loadData();
-			System.out.print(System.currentTimeMillis() - time);
-			System.out.println(" ( time reading data )");
+			System.err.print(System.currentTimeMillis() - time);
+			System.err.println(" ( time reading data )");
 		} catch (IOException e) {
 			System.err.println("ERROR: I/O problem");
 			e.printStackTrace();
@@ -33,41 +36,48 @@ public class Main {
 
 		long time = System.currentTimeMillis();
 		
+		ArrayList<LinkedList<String>> queries = 
+				new ArrayList<LinkedList<String>> ();
+		for (int i = 0; i < 4; i++) {
+			queries.add(0, new LinkedList<String>());
+		}
 		try {
-			Scanner scanner = 
-				new Scanner(new File(args[1]), 
-						    charset);
+			Scanner scanner = new Scanner(new File(args[1]), charset);
 			while (scanner.hasNextLine()) {
-				String line = scanner.nextLine();
-				String queryType = line.substring(0, 6);
-				String params[] = 
-					line.substring(7, line.length() - 1).split(", ");
-				if (queryType.equals("query1")) {
-					int p1 = Integer.parseInt(params[0]); 
-					int p2 = Integer.parseInt(params[1]);
-					int x = Integer.parseInt(params[2]);
-					System.out.println(qHandler.query1(p1, p2, x));
-				} else if (queryType.equals("query2")) {
-					int k = Integer.parseInt(params[0]);
-					try {
-						System.out.println(qHandler.query2(k, params[1]));
-					} catch (ParseException e) {
-						e.printStackTrace();
-					}
-				} else if (queryType.equals("query3")) {
-					int k = Integer.parseInt(params[0]);
-					int hops = Integer.parseInt(params[1]);
-					System.out.println(qHandler.query3(k, hops, params[2]));
-				} else if (queryType.equals("query4")) {
-					int k = Integer.parseInt(params[0]);
-					System.out.println(qHandler.query4(k, params[1]));
-				}   
+				String query = scanner.nextLine();
+				QueryType type = QueryHandler.getQueryType(query);
+				if (type == QueryType.TYPE1)
+					queries.get(0).add(query);
+				if (type == QueryType.TYPE2)
+					queries.get(1).add(query);
+				if (type == QueryType.TYPE3)
+					queries.get(2).add(query);
+				if (type == QueryType.TYPE4)
+					queries.get(3).add(query);
 			}
 			scanner.close();
 		} catch (FileNotFoundException e) {
 			System.err.println("ERROR: File not found");
 			System.exit(-1);
 		}
-		System.out.println("Queries: " + (System.currentTimeMillis() - time));
+
+		Thread threads[] = new Thread[4];
+		QueryHandler handlers[] = new QueryHandler[4];
+		for (int i = 0; i < 4; i++) {		
+			handlers[i] = new QueryHandler(Database.INSTANCE, queries.get(i));
+			threads[i] = new Thread(handlers[i]);
+			threads[i].start();
+		}
+		
+		try {
+			for (int i = 0; i < 4; i++) {
+				threads[i].join();
+				handlers[i].printAnswers();
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		System.err.println("Queries: " + (System.currentTimeMillis() - time));
 	}
 }

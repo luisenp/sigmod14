@@ -18,11 +18,6 @@ public class Database implements DB {
 	public DB instance() {
 		return INSTANCE;
 	}
-	
-	public static enum EdgeTypes {
-		DIRECTED,
-		UNDIRECTED,
-	}
 		
 	// data storage
 	Person persons[];
@@ -265,7 +260,7 @@ public class Database implements DB {
 		Person person = persons[personID];
 		for (Integer tagID : forum.getTags()) {
 			Tag tag = tags.get(tagID);
-			tag.addMemberForumEdge(person);		
+			tag.addMemberForumEdge(person);
 		}
 	}
 }
