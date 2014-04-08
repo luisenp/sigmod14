@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 public class FastFileIterator {
-	private int pagesize = 1024 * 8;
+	private int pagesize = 1024 * 256;
 	private RandomAccessFile file;
 	private byte[][] page = new byte[2][pagesize];
 	private int currentPage = 0;
