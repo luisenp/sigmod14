@@ -10,7 +10,7 @@ import java.util.Scanner;
 // TODO Consider dedicated nodes and edges depending on the type
 public class Main {
 	public static void main(String[] args) {
-		String charset = "UTF-8"; // "ISO-8859-1"; //       
+		String charset = "ISO-8859-1"; // "UTF-8"; //        
 		DataLoader loader = DataLoader.INSTANCE;
 		loader.setCharset(charset);
 		QueryHandler qHandler = QueryHandler.INSTANCE;		
@@ -19,8 +19,8 @@ public class Main {
 		try {
 			long time = System.currentTimeMillis();
 			loader.loadData();
-			System.out.print(System.currentTimeMillis() - time);
-			System.out.println(" ( time reading data )");
+			System.err.print(System.currentTimeMillis() - time);
+			System.err.println(" ( time reading data )");
 		} catch (IOException e) {
 			System.err.println("ERROR: I/O problem");
 			e.printStackTrace();
@@ -68,6 +68,6 @@ public class Main {
 			System.err.println("ERROR: File not found");
 			System.exit(-1);
 		}
-		System.out.println("Queries: " + (System.currentTimeMillis() - time));
+		System.err.println("Queries: " + (System.currentTimeMillis() - time));
 	}
 }

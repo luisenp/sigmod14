@@ -68,7 +68,7 @@ public class DataLoader {
 		// no need to store comments anymore
 		db.clearCommentCreator(); 
 		
-		System.out.println("LOADED COMMENTS");
+		System.err.println("LOADED COMMENTS");
 		
 		// data used for query2
 		loadTags();
@@ -86,7 +86,7 @@ public class DataLoader {
 		loadForumTag();
 		loadForumMember();
 		
-		System.out.println();
+		System.err.println();
 	}
 	
 	private void loadCommentReplyTo() throws IOException {
