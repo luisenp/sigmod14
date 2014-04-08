@@ -84,25 +84,17 @@ public class DataLoader {
 	}
 	
 	private void loadCommentReplyTo() throws IOException {
-		String file = dataDir + commentReplyFName + ".csv";
-		BufferedReader br = new BufferedReader(new FileReader(file));
-		String line = br.readLine();
-		while ((line = br.readLine()) != null) {
-			String[] fields = line.split("\\|");
-
-			// (*) reply will already be on DB iff it has a creator who knows
-			//     someone. Otherwise it is useless for query1
-			Long replyID = Long.parseLong(fields[0]);
-			if (!db.commentHasCreator(replyID))
-				continue;
-			
-			Long repliedToID = Long.parseLong(fields[1]);
+		String filename = dataDir + commentReplyFName + ".csv";
+		FastFileIterator reader = new FastFileIterator(filename);
+		
+		while(reader.hasNext()) {
+			long replyID = reader.next();
+			long repliedToID = reader.next();
 			if (!db.commentHasCreator(repliedToID)) 
-				continue; // see (*) above
-			
-			db.addReply(replyID, repliedToID);	
+				continue;
+			db.addReply(replyID, repliedToID);
 		}
-		br.close();
+		reader.close();
 	}
 
 	private void loadPersonKnowsPerson() throws FileNotFoundException {
