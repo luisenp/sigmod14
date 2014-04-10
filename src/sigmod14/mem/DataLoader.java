@@ -117,8 +117,6 @@ public class DataLoader {
 		String file = dataDir + commentCreatorFName + ".csv";
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		String line = br.readLine();
-		int cnt = 0;	//TODO testing
-		long largestID = 0;
 		while ((line = br.readLine()) != null) {
 			String[] fields = line.split("\\|");
 
@@ -127,16 +125,10 @@ public class DataLoader {
 			Integer personID = Integer.parseInt(fields[1]);
 			if (!db.containsPerson(personID)) continue;
 			
-			Long commentID = Long.parseLong(fields[0]);
+			Integer commentID = Integer.parseInt(fields[0]);
 			
-			if (db.getNumPersons() < 14000)	//TODO testing
-				db.addCommentCreator(commentID, personID);
-						
-			cnt++; //TODO testing
-			largestID = commentID > largestID ? commentID : largestID;
+			db.addCommentCreator(commentID, personID);
 		}
-		System.err.println("Comments creator " + cnt);	//TODO testing
-		System.err.println("Largest ID " + largestID);	//TODO testing
 		br.close();
 	}
 
@@ -145,27 +137,22 @@ public class DataLoader {
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		String line = br.readLine();
 		
-		int cnt = 0;	//TODO testing
 		while ((line = br.readLine()) != null) {
-			cnt++;	//TODO testing
-			
 			String[] fields = line.split("\\|");
 
 			// (*) replyID will already be on DB iff it has a creator who knows
 			//     someone. Otherwise it is useless for query1
-			Long replyID = Long.parseLong(fields[0]);
+			Integer replyID = Integer.parseInt(fields[0]);
 			if (!db.commentHasCreator(replyID))
 				continue;
 			
-			Long repliedToID = Long.parseLong(fields[1]);
+			Integer repliedToID = Integer.parseInt(fields[1]);
 			if (!db.commentHasCreator(repliedToID)) 
 				continue; // see (*) above
 			
 			db.addReply(replyID, repliedToID);
 		}
 		br.close();
-
-		System.err.println("Comments reply " + cnt);	//TODO testing
 	}
 	
 	private void loadTags() throws FileNotFoundException {

@@ -11,7 +11,7 @@ import java.util.Scanner;
 // TODO The singleton design seems ugly. Consider changing later
 public class Main {
 	public static void main(String[] args) {
-		String charset = "ISO-8859-1";// "UTF-8"; //              
+		String charset = "ISO-8859-1";// "UTF-8"; //                
 		DataLoader loader = DataLoader.INSTANCE;
 		loader.setCharset(charset);				
 		loader.setDataDirectory(args[0]);

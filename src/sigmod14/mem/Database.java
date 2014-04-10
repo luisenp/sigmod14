@@ -1,5 +1,6 @@
 package sigmod14.mem;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -12,10 +13,10 @@ import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
 
-public class Database implements DB {
+public class Database  {
 	public static final Database INSTANCE = new Database();
 	
-	public DB instance() {
+	public Database instance() {
 		return INSTANCE;
 	}
 		
@@ -25,7 +26,7 @@ public class Database implements DB {
 	private HashMap<Integer,Node> places;
 	private HashMap<Integer,Forum> forums;
 	
-	private HashMapLong commentCreator;
+	private int commentCreator[];
 	private HashMapLong placeOrg;
 	private HashMapLong placeLocatedAtPlace;
 	private HashMap<String,String> namePlaces;
@@ -41,7 +42,9 @@ public class Database implements DB {
 		places = new HashMap<Integer,Node> (10007);
 		forums = new HashMap<Integer,Forum> (1000000);
 
-		commentCreator = new HashMapLong(50000017);
+		commentCreator = new int[700000000];
+		Arrays.fill(commentCreator, -1);
+		
 		placeOrg = new HashMapLong(10007);
 		placeLocatedAtPlace = new HashMapLong(10007);
 		namePlaces = new HashMap<String,String> (10007);
@@ -65,15 +68,16 @@ public class Database implements DB {
 		commentCreator = null;
 	}
 	 
-	public void addCommentCreator(long commentID, long personID) {
-		commentCreator.put(commentID, personID);		
-	}
-	public boolean commentHasCreator(long id) {
-		return commentCreator.containsKey(id);
+	public void addCommentCreator(int commentID, int personID) {
+		commentCreator[commentID] = personID;		
 	}
 	
-	public Person getCommentCreator(long id) {
-		return persons[(int) commentCreator.get(id)];
+	public boolean commentHasCreator(int id) {
+		return commentCreator[id] != -1;
+	}
+	
+	public Person getCommentCreator(int id) {
+		return persons[commentCreator[id]];
 	}
 	
 	public boolean containsPerson(int id) {
@@ -105,7 +109,7 @@ public class Database implements DB {
 		return persons;
 	}
 	
-	public void addReply(long replyID, long repliedToID) {
+	public void addReply(int replyID, int repliedToID) {
 		Person creatorReply = getCommentCreator(replyID);
 		Person creatorRepliedTo = getCommentCreator(repliedToID);
 		
