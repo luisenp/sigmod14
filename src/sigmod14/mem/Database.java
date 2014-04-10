@@ -32,19 +32,21 @@ public class Database implements DB {
 
 	private HashMap<Edge,Edge> knowsEdges;
 	
+	private int numPersons;
+	
 	// private constructor to instantiate public INSTANCE
 	private Database() {
-		persons = new Person[10001];
-		tags = new HashMap<Integer,Tag> (100000);
-		places = new HashMap<Integer,Node> (10000);
-		forums = new HashMap<Integer,Forum> (10000);
+		persons = new Person[100001];
+		tags = new HashMap<Integer,Tag> (10007);
+		places = new HashMap<Integer,Node> (10007);
+		forums = new HashMap<Integer,Forum> (1000000);
 
-		commentCreator = new HashMapLong(4999999);
+		commentCreator = new HashMapLong(50000017);
 		placeOrg = new HashMapLong(10007);
 		placeLocatedAtPlace = new HashMapLong(10007);
-		namePlaces = new HashMap<String,String> (10000);
+		namePlaces = new HashMap<String,String> (10007);
 		
-		knowsEdges = new HashMap<Edge,Edge> (500000);
+		knowsEdges = new HashMap<Edge,Edge> (1000003);
 	}
 	
 	// this method is used by DataLoader.loadCommentReplyTo() 
@@ -82,6 +84,7 @@ public class Database implements DB {
 		if (!containsPerson(id)) {
 			Person person = new Person(id);
 			persons[id] = person;
+			numPersons++;
 			return person;
 		} else {
 			return persons[id];
@@ -89,15 +92,9 @@ public class Database implements DB {
 	}
 	
 	public Person addPerson(int id, Date birthday) {
-		if (!containsPerson(id)) {
-			Person person = new Person(id, birthday.getTime());
-			persons[id] = person;
-			return person;
-		} else {
-			Person person = persons[id];
-			person.setBirthday(birthday.getTime());
-			return person;
-		}
+		Person person = addPerson(id);
+		person.setBirthday(birthday.getTime());
+		return person;
 	}
 	
 	public Person getPerson(int id) {
@@ -262,5 +259,17 @@ public class Database implements DB {
 			Tag tag = tags.get(tagID);
 			tag.addMemberForumEdge(person);
 		}
+	}
+	
+	public int getNumPersons() {
+		return numPersons;
+	}
+	
+	public void printDatabaseInfo() {
+		System.err.println("Persons : " + numPersons);
+		System.err.println("Tags : " + tags.size());
+		System.err.println("Places : " + places.size());
+		System.err.println("Forums : " + forums.size());
+		System.err.println("Knows : " + knowsEdges.size());
 	}
 }

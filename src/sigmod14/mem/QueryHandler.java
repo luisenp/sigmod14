@@ -1,6 +1,7 @@
 package sigmod14.mem;
 
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -18,7 +19,9 @@ import sigmod14.mem.graph.Tag;
 public class QueryHandler implements Runnable {
 	private Database db;
 	private LinkedList<String> queries;
-	private LinkedList<String> answers;
+	private HashMap<String,String> answers;
+	private final SimpleDateFormat sdf =
+			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 	
 	public static enum QueryType {
 		TYPE1,
@@ -30,8 +33,12 @@ public class QueryHandler implements Runnable {
 	public QueryHandler(Database db, LinkedList<String> queries) {
 		this.db = db;
 		this.queries = queries;
-		answers = new LinkedList<String> ();
-	}	
+		answers = new HashMap<String,String> ();
+	}
+
+	public QueryHandler(Database db) {
+		this(db, new LinkedList<String> ());
+	}
 	
 	private class TagComparator implements Comparator<Integer> {
 		private long date;
@@ -241,7 +248,7 @@ public class QueryHandler implements Runnable {
 	}
 	
 	public String query2(int k, String d) throws ParseException {
-		Date date = DataLoader.INSTANCE.sdf.parse(d + ":00:00:00");
+		Date date = sdf.parse(d + ":00:00:00");
 		
 		// priority queue according to the tag range
 		PriorityQueue<Integer> pq = 
@@ -286,7 +293,7 @@ public class QueryHandler implements Runnable {
 		for (String s: placeIDs) {
 			Integer placeID = Integer.parseInt(s);
 			Person persons[] = db.getAllPersons();
-			for (int personID = 0; personID < persons.length; personID++) {
+			for (int personID = 0; personID < db.getNumPersons(); personID++) {
 				if (persons[personID] == null) continue;
 				if (personIsLocatedAt(personID, placeID)) 
 					personsAtPlace.add(personID);
@@ -428,21 +435,21 @@ public class QueryHandler implements Runnable {
 				int p1 = Integer.parseInt(params[0]); 
 				int p2 = Integer.parseInt(params[1]);
 				int x = Integer.parseInt(params[2]);
-				answers.add(query1(p1, p2, x));
+				answers.put(query, query1(p1, p2, x));
 			} else if (type.equals(QueryType.TYPE2)) {
 				int k = Integer.parseInt(params[0]);
 				try {
-					answers.add(query2(k, params[1]));
+					answers.put(query, query2(k, params[1]));
 				} catch (ParseException e) {
 					e.printStackTrace();
 				}
 			} else if (type.equals(QueryType.TYPE3)) {
 				int k = Integer.parseInt(params[0]);
 				int hops = Integer.parseInt(params[1]);
-				answers.add(query3(k, hops, params[2]));
+				answers.put(query, query3(k, hops, params[2]));
 			} else if (type.equals(QueryType.TYPE4)) {
 				int k = Integer.parseInt(params[0]);
-				answers.add(query4(k, params[1]));
+				answers.put(query, query4(k, params[1]));
 			}			
 		}
 	}
@@ -451,10 +458,8 @@ public class QueryHandler implements Runnable {
 		solveQueries();
 	}
 	
-	public void printAnswers() {
-		for (String s : answers) {
-			System.out.println(s);
-		}
+	public HashMap<String,String> getAnswers() {
+		return answers;
 	}
 	
 	public static QueryType getQueryType(String query) {
@@ -469,5 +474,9 @@ public class QueryHandler implements Runnable {
 			return QueryType.TYPE4;
 		}			
 		return null;
+	}
+	
+	public void addQuery(String query) {
+		queries.add(query);
 	}
 }
