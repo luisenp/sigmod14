@@ -1,8 +1,5 @@
 package sigmod14.mem;
 
-import gnu.trove.iterator.TIntIterator;
-import gnu.trove.list.linked.TIntLinkedList;
-
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -260,9 +257,8 @@ public class Database  {
 		if (forum == null) 
 			return;
 		Person person = persons[personID];
-		TIntLinkedList forumTags = forum.getTags();
-		for (TIntIterator it = forumTags.iterator(); it.hasNext();) {
-			Tag tag = tags.get(it.next());
+		for (Integer tagID: forum.getTags()) {
+			Tag tag = tags.get(tagID);
 			tag.addMemberForumEdge(person);
 		}
 	}

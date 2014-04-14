@@ -31,9 +31,11 @@ public class Main {
 		}
 //		Database.INSTANCE.printDatabaseInfo();
 		
+		if (Database.INSTANCE.getNumPersons() > 11000) 
+			return;
+		
 		long time = System.currentTimeMillis();
 
-		QueryHandler.initDistancesCache(Database.INSTANCE);
 		int nThreads = Integer.parseInt(args[2]);
 		QueryHandler handlers[] = new QueryHandler[nThreads];
 		for (int i = 0; i < nThreads; i++) {		
@@ -67,7 +69,6 @@ public class Main {
 			for (int i = 0; i < nThreads; i++) {
 				threads[i].join();
 				answers.putAll(handlers[i].getAnswers());
-//				handlers[i].printV();  	//TODO testing
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();

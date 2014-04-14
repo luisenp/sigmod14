@@ -24,6 +24,8 @@ public class QueryHandler implements Runnable {
 	private final SimpleDateFormat sdf =
 			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 
+	private boolean visited[];
+	
 	private static short distances[][];
 	
 	public static enum QueryType {
@@ -37,6 +39,7 @@ public class QueryHandler implements Runnable {
 		this.db = db;
 		this.queries = queries;
 		answers = new HashMap<String,String> ();
+		visited = new boolean[db.getNumPersons()];
 	}
 
 	public QueryHandler(Database db) {
@@ -74,16 +77,16 @@ public class QueryHandler implements Runnable {
 
 			// finding size of largest component using multiple DFS
 			int score = 0;
-			HashSet<Integer> visited = new HashSet<Integer>();
+			Arrays.fill(visited, false);
 			for (Integer id : vertices) {
-				if (visited.contains(id)) continue;
+				if (visited[id]) continue;
 				int sizeComp = 0;
 				LinkedList<Integer> stack = new LinkedList<Integer> ();
 				stack.add(id);
 				while (!stack.isEmpty()) {
 					int personID = stack.removeFirst();
-					if (visited.contains(personID)) continue;
-					visited.add(personID);
+					if (visited[personID]) continue;
+					visited[personID] = true;
 					sizeComp++;
 					Person person = db.getPerson(personID);
 					for (Edge ae : person.getKnows()) {
@@ -234,41 +237,26 @@ public class QueryHandler implements Runnable {
 		if (goal == null) return "-1";
 		LinkedList<Person> queue = new LinkedList<Person> ();
 		LinkedList<Short> dist = new LinkedList<Short> ();
-		HashSet<Integer> visited = new HashSet<Integer> ();
+		Arrays.fill(visited, false);
 		queue.addFirst(db.getPerson(p1));
 		dist.addFirst((short) 0);
 		short bestDistance = 10000;   
 		while (!queue.isEmpty()) {
 			Person person = queue.removeFirst();
-			int pid = person.getId();
 			short d = dist.removeFirst();
-			if (visited.contains(pid)) 
-				continue;
-			visited.add(pid);
-			if (x == -123) {
-				if (pid == p2) {
-					if (d < bestDistance) 
-						bestDistance = d;
-					return String.valueOf(bestDistance);
-				}
-				if (d >= bestDistance) 
-					return String.valueOf(bestDistance);
-				if (distances[pid] != null && distances[pid][p2] != -1) {
-					short dgoal = (short) (d + distances[pid][p2]);
-					if (dgoal < bestDistance)
-						bestDistance = dgoal;
-					continue;
-				}
-			} else {
-				if (person.equals(goal)) 
-					return String.valueOf(d);				
-			}
+			int pid = person.getId();
+			if (visited[pid]) continue;
+			visited[pid] = true;
+			if (pid == p2) 
+				return String.valueOf(d);
 			for (Edge ae : person.getKnows()) {
 				KnowsEdge edge = (KnowsEdge) ae;
 				Person adjPerson = (Person) edge.getOtherNode(person);
 				short replyOut = edge.getRepOut();
 				short replyIn = edge.getRepIn();
 				if (replyIn > x && replyOut > x) {
+					if (adjPerson.equals(goal)) 
+						return String.valueOf(d + 1);
 					queue.add(adjPerson);
 					dist.add((short) (d + 1));
 				}
@@ -338,7 +326,7 @@ public class QueryHandler implements Runnable {
 			Person p1 = db.getPerson(idP1);
 			LinkedList<Person> queue = new LinkedList<Person>();
 			LinkedList<Integer> dist = new LinkedList<Integer>();
-			HashSet<Integer> visited = new HashSet<Integer>();
+			Arrays.fill(visited, false);;
 			queue.addFirst(p1);
 			dist.addFirst(0);
 			// does a BFS with depth-limit = hops 
@@ -346,8 +334,8 @@ public class QueryHandler implements Runnable {
 			while (!queue.isEmpty()) {
 				Person p2 = queue.removeFirst();
 				int d = dist.removeFirst();
-				if (visited.contains(p2.getId())) continue;
-				visited.add(p2.getId());
+				if (visited[p2.getId()]) continue;
+				visited[p2.getId()] = true;
 				if (p1.getId() != p2.getId() && p1.getId() < p2.getId()
 					&& personsAtPlace.contains(p2.getId())) {
 					// prioritized according to their (p1 p2) similarity
@@ -524,7 +512,7 @@ public class QueryHandler implements Runnable {
 		}
 		Arrays.sort(sorted, new PersonDegreeComparator());
 		HashSet<Integer> visited = new HashSet<Integer> ();		
-		for (int i = 0; i*i < 0; i++) {
+		for (int i = 0; i < 100; i++) {
 			int cnt = 0;
 			Person p = sorted[i];
 			LinkedList<Person> queue = new LinkedList<Person> (); 
@@ -535,7 +523,7 @@ public class QueryHandler implements Runnable {
 			queue.addFirst(p);
 			dist.addFirst((short) 0);
 			while (!queue.isEmpty()) {
-				if (10*cnt > numPersons) break;
+				if (10*cnt++ > numPersons) break;
 				Person cur = queue.removeFirst();
 				short d = dist.removeFirst();
 				if (visited.contains(cur.getId())) continue;
