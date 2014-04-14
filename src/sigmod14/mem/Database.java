@@ -1,14 +1,16 @@
 package sigmod14.mem;
 
-import java.util.Arrays;
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.list.linked.TIntLinkedList;
+
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 
 import sigmod14.mem.graph.Edge;
-import sigmod14.mem.graph.Node;
-import sigmod14.mem.graph.KnowsEdge;
 import sigmod14.mem.graph.Forum;
+import sigmod14.mem.graph.KnowsEdge;
+import sigmod14.mem.graph.Node;
 import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
@@ -42,8 +44,7 @@ public class Database  {
 		places = new HashMap<Integer,Node> (10007);
 		forums = new HashMap<Integer,Forum> (1000000);
 
-		commentCreator = new int[700000000];
-		Arrays.fill(commentCreator, -1);
+		commentCreator = new int[300000000];
 		
 		placeOrg = new HashMapLong(10007);
 		placeLocatedAtPlace = new HashMapLong(10007);
@@ -69,15 +70,15 @@ public class Database  {
 	}
 	 
 	public void addCommentCreator(int commentID, int personID) {
-		commentCreator[commentID] = personID;		
+		commentCreator[commentID] = personID + 7;		
 	}
 	
 	public boolean commentHasCreator(int id) {
-		return commentCreator[id] != -1;
+		return commentCreator[id] != 0;
 	}
 	
 	public Person getCommentCreator(int id) {
-		return persons[commentCreator[id]];
+		return persons[commentCreator[id] - 7];
 	}
 	
 	public boolean containsPerson(int id) {
@@ -259,8 +260,9 @@ public class Database  {
 		if (forum == null) 
 			return;
 		Person person = persons[personID];
-		for (Integer tagID : forum.getTags()) {
-			Tag tag = tags.get(tagID);
+		TIntLinkedList forumTags = forum.getTags();
+		for (TIntIterator it = forumTags.iterator(); it.hasNext();) {
+			Tag tag = tags.get(it.next());
 			tag.addMemberForumEdge(person);
 		}
 	}
@@ -275,5 +277,5 @@ public class Database  {
 		System.err.println("Places : " + places.size());
 		System.err.println("Forums : " + forums.size());
 		System.err.println("Knows : " + knowsEdges.size());
-	}
+	}	
 }

@@ -56,16 +56,14 @@ public class DataLoader {
 		loadPersons();
 		loadPersonKnowsPerson();
 		
-		System.err.println("LOADED PERSONS");
+//		System.err.println("LOADED PERSONS");
 		
 		// data used for query1
 		loadCommentsCreator();
-		loadCommentReplyTo();
-		// no need to store comments anymore
-		db.clearCommentCreator(); 
+		loadCommentReplyTo();		
+		db.clearCommentCreator();  // no need to store comments anymore 
 		
-		System.err.println("LOADED COMMENTS");
-		if (db.getNumPersons() > 12000) return;	//TODO testing
+//		System.err.println("LOADED COMMENTS");
 		
 		// data used for query2
 		loadTags();

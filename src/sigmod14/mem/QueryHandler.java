@@ -2,6 +2,7 @@ package sigmod14.mem;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -22,6 +23,8 @@ public class QueryHandler implements Runnable {
 	private HashMap<String,String> answers;
 	private final SimpleDateFormat sdf =
 			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
+
+	private static short distances[][];
 	
 	public static enum QueryType {
 		TYPE1,
@@ -215,6 +218,14 @@ public class QueryHandler implements Runnable {
 		}
 		
 	}
+
+	private static class 
+	PersonDegreeComparator implements Comparator<Person> {		
+		public int compare(Person p1, Person p2) {
+			return -1*Integer.compare(p1.getKnows().size(), p2.getKnows().size());
+		}
+		
+	}
 		
 	// does a BFS on the induced graph, starting from p1 and counting the
 	// steps to reach p2
@@ -222,29 +233,48 @@ public class QueryHandler implements Runnable {
 		Person goal = db.getPerson(p2);
 		if (goal == null) return "-1";
 		LinkedList<Person> queue = new LinkedList<Person> ();
-		LinkedList<Integer> dist = new LinkedList<Integer> ();
-		HashSet<Person> visited = new HashSet<Person> ();
+		LinkedList<Short> dist = new LinkedList<Short> ();
+		HashSet<Integer> visited = new HashSet<Integer> ();
 		queue.addFirst(db.getPerson(p1));
-		dist.addFirst(0);
+		dist.addFirst((short) 0);
+		short bestDistance = 10000;   
 		while (!queue.isEmpty()) {
-			Person person = queue.removeFirst();			
-			int d = dist.removeFirst();
-			if (visited.contains(person)) continue;
-			if (person.equals(goal)) return String.valueOf(d);
-			visited.add(person);
+			Person person = queue.removeFirst();
+			int pid = person.getId();
+			short d = dist.removeFirst();
+			if (visited.contains(pid)) 
+				continue;
+			visited.add(pid);
+			if (x == -123) {
+				if (pid == p2) {
+					if (d < bestDistance) 
+						bestDistance = d;
+					return String.valueOf(bestDistance);
+				}
+				if (d >= bestDistance) 
+					return String.valueOf(bestDistance);
+				if (distances[pid] != null && distances[pid][p2] != -1) {
+					short dgoal = (short) (d + distances[pid][p2]);
+					if (dgoal < bestDistance)
+						bestDistance = dgoal;
+					continue;
+				}
+			} else {
+				if (person.equals(goal)) 
+					return String.valueOf(d);				
+			}
 			for (Edge ae : person.getKnows()) {
 				KnowsEdge edge = (KnowsEdge) ae;
 				Person adjPerson = (Person) edge.getOtherNode(person);
-				short replyOut = -1, replyIn = -1;
-				replyOut = edge.getRepOut();
-				replyIn = edge.getRepIn();
+				short replyOut = edge.getRepOut();
+				short replyIn = edge.getRepIn();
 				if (replyIn > x && replyOut > x) {
 					queue.add(adjPerson);
-					dist.add(d + 1);
+					dist.add((short) (d + 1));
 				}
 			}
 		}
-		return "-1";
+		return bestDistance == 10000? "-1" : String.valueOf(bestDistance);
 	}
 	
 	public String query2(int k, String d) throws ParseException {
@@ -348,13 +378,13 @@ public class QueryHandler implements Runnable {
 	// sp - current sp (sum geod. distances of reachable nodes)
 	// n - number of vertices on the graph
 	// d - minimum geod. distances of reamining nodes
-	// c- centrality to compare to
+	// c - centrality to compare to
 	private 
 	boolean checkCentrality(long rp, long sp, long n, long d, Centrality c) {
 		long x = n - rp;
 		if (2*x*d <= d - 2*sp) return true;
 		Centrality maxC = new Centrality(n, sp + x*d);
-		if (maxC.compare(c) <= 0) return false;
+		if (maxC.compare(c) < 0) return false;
 		return true;
 	}
 	
@@ -379,30 +409,36 @@ public class QueryHandler implements Runnable {
 		for (Person person : tag.getMembersForums()) {
 			vertices.add(person);
 		}
+		Person sortedVertices[] = vertices.toArray(new Person[vertices.size()]);		
+		Arrays.sort(sortedVertices, new PersonDegreeComparator());
+		
 		int n1 = vertices.size() - 1;
-
+	
 		// from each node p on the graph, do a BFS and compute centrality
 		PriorityQueue<PersonCentrality> pq =
 			new PriorityQueue<PersonCentrality> 
 				(k + 1, new PersonCentralityComparator());
-		for (Person p : vertices){
+		int cnt = 0;
+		for (Person p : sortedVertices) {
+			if (3*cnt++ > vertices.size()) 
+				break;
 			LinkedList<Person> queue = new LinkedList<Person> ();
 			LinkedList<Integer> dist = new LinkedList<Integer> ();
 			HashSet<Person> visited = new HashSet<Person> ();
 			queue.add(p);
 			dist.add(0);
 			long rp = -1, sp = 0;
-			// do a BFS to compute relevant quantities rp, sp
+			// do a BFS to compute relevant quantities rp, sp				
 			while (!queue.isEmpty()) {
 				Person p2 = queue.removeFirst();
 				int d = dist.removeFirst();
 				// visit only vertices with the given forum tag
-				if (!vertices.contains(p2)) continue;
-				if (visited.contains(p2)) continue;
+				if (!vertices.contains(p2) || visited.contains(p2)) 
+					continue;
 				visited.add(p2);
 				rp++;
 				sp += d;
-				if (!pq.isEmpty()
+				if (pq.size() >= k
 					&& !checkCentrality(rp, sp, n1, d, pq.peek().centrality)) {
 					// stops if max. possible centrality is lower than the
 					// worst one in the priority queue
@@ -413,11 +449,10 @@ public class QueryHandler implements Runnable {
 					queue.add((Person) edge.getOtherNode(p2));
 					dist.add(d + 1);
 				}
-			}
+			}			
 			pq.add(new PersonCentrality(p, new Centrality(rp*rp, n1*sp)));
 			if (pq.size() > k) pq.poll();
 		}
-
 		String queryAns = "";
 		while (!pq.isEmpty()) {
 			PersonCentrality pc = pq.poll();
@@ -451,7 +486,7 @@ public class QueryHandler implements Runnable {
 				int k = Integer.parseInt(params[0]);
 				answers.put(query, query4(k, params[1]));
 			}			
-		}
+		}		
 	}
 	
 	public void run() {
@@ -478,5 +513,43 @@ public class QueryHandler implements Runnable {
 	
 	public void addQuery(String query) {
 		queries.add(query);
+	}
+	
+	public static void initDistancesCache(Database db) {
+		int numPersons = db.getNumPersons();
+		distances = new short[numPersons][];
+		Person sorted[] = new Person[numPersons];
+		for (int i = 0; i < numPersons; i++) {
+			sorted[i] = db.getPerson(i);
+		}
+		Arrays.sort(sorted, new PersonDegreeComparator());
+		HashSet<Integer> visited = new HashSet<Integer> ();		
+		for (int i = 0; i*i < 0; i++) {
+			int cnt = 0;
+			Person p = sorted[i];
+			LinkedList<Person> queue = new LinkedList<Person> (); 
+			LinkedList<Short> dist = new LinkedList<Short> ();
+			distances[p.getId()] = new short[numPersons];
+			Arrays.fill(distances[p.getId()], (short) -1);
+			visited.clear();
+			queue.addFirst(p);
+			dist.addFirst((short) 0);
+			while (!queue.isEmpty()) {
+				if (10*cnt > numPersons) break;
+				Person cur = queue.removeFirst();
+				short d = dist.removeFirst();
+				if (visited.contains(cur.getId())) continue;
+				visited.add(cur.getId());
+				distances[p.getId()][cur.getId()] = d;
+				for (KnowsEdge edge : cur.getKnows()) {
+					short replyOut = edge.getRepOut();
+					short replyIn = edge.getRepIn();
+					if (replyIn > -1 && replyOut > -1) {
+						queue.add((Person) edge.getOtherNode(cur));
+						dist.add((short) (d + 1));
+					}
+				}
+			}
+		}
 	}
 }

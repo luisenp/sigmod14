@@ -11,7 +11,7 @@ import java.util.Scanner;
 // TODO The singleton design seems ugly. Consider changing later
 public class Main {
 	public static void main(String[] args) {
-		String charset = "ISO-8859-1";// "UTF-8"; //                
+		String charset = args[3]; // "ISO-8859-1";// "UTF-8"; //                
 		DataLoader loader = DataLoader.INSTANCE;
 		loader.setCharset(charset);				
 		loader.setDataDirectory(args[0]);
@@ -29,11 +29,11 @@ public class Main {
 			e.printStackTrace();
 			System.exit(-1);
 		}
-
-		Database.INSTANCE.printDatabaseInfo();
+//		Database.INSTANCE.printDatabaseInfo();
 		
 		long time = System.currentTimeMillis();
-		
+
+		QueryHandler.initDistancesCache(Database.INSTANCE);
 		int nThreads = Integer.parseInt(args[2]);
 		QueryHandler handlers[] = new QueryHandler[nThreads];
 		for (int i = 0; i < nThreads; i++) {		
@@ -67,6 +67,7 @@ public class Main {
 			for (int i = 0; i < nThreads; i++) {
 				threads[i].join();
 				answers.putAll(handlers[i].getAnswers());
+//				handlers[i].printV();  	//TODO testing
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
