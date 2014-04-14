@@ -410,20 +410,20 @@ public class QueryHandler implements Runnable {
 		for (Person p : sortedVertices) {
 			if (3*cnt++ > vertices.size()) 
 				break;
-			LinkedList<Person> queue = new LinkedList<Person> ();
-			LinkedList<Integer> dist = new LinkedList<Integer> ();
 			HashSet<Person> visited = new HashSet<Person> ();
-			queue.add(p);
+			
+			LinkListInt queue = new LinkListInt(db.getNumPersons());
+			LinkListInt dist = new LinkListInt(db.getNumPersons());
+
+			queue.add(p.getId());
 			dist.add(0);
+			visited.add(p);
 			long rp = -1, sp = 0;
 			// do a BFS to compute relevant quantities rp, sp				
 			while (!queue.isEmpty()) {
-				Person p2 = queue.removeFirst();
+				Person p2 = db.getPerson(queue.removeFirst());
 				int d = dist.removeFirst();
 				// visit only vertices with the given forum tag
-				if (!vertices.contains(p2) || visited.contains(p2)) 
-					continue;
-				visited.add(p2);
 				rp++;
 				sp += d;
 				if (pq.size() >= k
@@ -434,7 +434,11 @@ public class QueryHandler implements Runnable {
 				}
 				for (Edge ae : p2.getKnows()) {
 					KnowsEdge edge = (KnowsEdge) ae;
-					queue.add((Person) edge.getOtherNode(p2));
+					Person adjPerson = (Person) edge.getOtherNode(p2);
+					if (!vertices.contains(adjPerson) || visited.contains(adjPerson)) 
+						continue;
+					visited.add(adjPerson);
+					queue.add(adjPerson.getId());
 					dist.add(d + 1);
 				}
 			}			
