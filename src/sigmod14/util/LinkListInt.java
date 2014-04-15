@@ -1,4 +1,4 @@
-package sigmod14.mem;
+package sigmod14.util;
 
 public class LinkListInt {
 	private int head;

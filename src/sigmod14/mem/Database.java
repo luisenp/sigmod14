@@ -9,6 +9,7 @@ import sigmod14.mem.graph.Node;
 import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
+import sigmod14.util.HashMapLong;
 
 public class Database  {
 	public static final Database INSTANCE = new Database();

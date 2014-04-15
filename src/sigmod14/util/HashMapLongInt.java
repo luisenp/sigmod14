@@ -1,4 +1,4 @@
-package sigmod14.mem;
+package sigmod14.util;
 
 public class HashMapLongInt {
 	private static final int INITIAL_BUCKET_SIZE = 4;

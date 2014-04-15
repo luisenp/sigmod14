@@ -1,4 +1,4 @@
-package sigmod14.mem;
+package sigmod14.util;
 
 public class HashMapLong {
 	private static final int INITIAL_BUCKET_SIZE = 8;
@@ -8,11 +8,11 @@ public class HashMapLong {
 		storage = new long[cap][];
 	}
 
-	private int hash(long key) {
+	public int hash(long key) {
 		return (int) (key % storage.length);
 	}
 	
-	private void put(long array[][], long key, long val) {
+	public void put(long array[][], long key, long val) {
 		int bucket = hash(key);
 		if (array[bucket] == null) {
 			array[bucket] = new long[INITIAL_BUCKET_SIZE];
@@ -42,7 +42,7 @@ public class HashMapLong {
 		}
 	}	
 	
-	void put(long key, long val) {
+	public void put(long key, long val) {
 		put(storage, key, val);
 	}
 	
@@ -60,19 +60,5 @@ public class HashMapLong {
 	
 	public boolean containsKey(long key) {
 		return get(key) != -1;
-	}
-	
-	@SuppressWarnings("unused")
-	private void enlarge() {
-		long newArray[][] = new long[2*storage.length][];
-		for (int i = 0; i < 2*storage.length; i++)
-			newArray[i] = new long[INITIAL_BUCKET_SIZE];
-		for (int i = 0; i < storage.length; i++) {
-			for (int j = 0; j < storage[i].length; j += 2) {
-				if (storage[i][j] == -1) break;
-				put(newArray, storage[i][j], storage[i][j + 1]);
-			}
-		}
-		storage = newArray;
 	}
 }

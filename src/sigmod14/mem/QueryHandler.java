@@ -14,6 +14,7 @@ import sigmod14.mem.graph.Node;
 import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
+import sigmod14.util.LinkListInt;
 
 public class QueryHandler implements Runnable {
 	private Database db;
@@ -401,7 +402,7 @@ public class QueryHandler implements Runnable {
 				(k + 1, new PersonCentralityComparator());
 		int cnt = 0;
 		for (Person p : sortedVertices) {
-			if (3*cnt++ > vertices.size()) 
+			if (4*cnt++ > vertices.size()) 
 				break;
 			HashSet<Person> visited = new HashSet<Person> ();
 			
