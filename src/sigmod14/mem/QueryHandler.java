@@ -8,7 +8,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.Collections;
 
 import sigmod14.mem.graph.Edge;
 import sigmod14.mem.graph.KnowsEdge;
@@ -18,7 +25,7 @@ import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
 
 public class QueryHandler implements Runnable {
-	private Database db;
+	private Database db = Database.INSTANCE;
 	private LinkedList<String> queries;
 	private HashMap<String,String> answers;
 	private final SimpleDateFormat sdf =
@@ -376,9 +383,81 @@ public class QueryHandler implements Runnable {
 		return true;
 	}
 	
+	public class IntPair {
+		int x;
+		int d;
+		IntPair(int x, int d) {
+			this.x = x;
+			this.d = d;
+		}
+	}
+	
+	public class bfsinternal implements Runnable {
+		Database db;
+		Integer x = new Integer(0);
+		List<IntPair> queue = new LinkedList<IntPair>();
+		//ConcurrentLinkedQueue<IntPair> queue = new ConcurrentLinkedQueue<IntPair>();
+		//ConcurrentLinkedQueue<Integer> queue = new ConcurrentLinkedQueue<Integer>();
+	    //ConcurrentLinkedQueue<Integer> dist = new ConcurrentLinkedQueue<Integer>();
+	    PriorityQueue<PersonCentrality> pq = new PriorityQueue<PersonCentrality>();
+	    HashSet<Person> visited = new HashSet<Person>();
+	    HashSet<Person> vertices = new HashSet<Person>();
+	    long rp = 0;
+	    long sp = 0;
+	    int k = 0;
+	    int n1 = 0;
+	    int d = 0;
+		
+		bfsinternal(IntPair pair,
+				  //ConcurrentLinkedQueue<IntPair> queue, 
+				List<IntPair> queue,
+			      PriorityQueue<PersonCentrality> pq, 
+			      HashSet<Person> visited,
+			      HashSet<Person> vertices,
+			      long rp, long sp, int k, int n1){
+			this.x = pair.x;
+			this.d = pair.d;
+			this.queue = queue;
+			
+			this.pq = pq;
+			this.visited = visited;
+			this.vertices = vertices;
+			this.rp = rp;
+			this.sp = sp;
+			this.k = k;
+			this.n1 = n1;
+		}
+		public void run() {
+			
+			if (x == null) {
+				return;
+			}
+			Person p2 = Database.INSTANCE.getPerson(x);
+			
+			// visit only vertices with the given forum tag
+			rp++;
+			sp += d;
+			if (pq.size() >= k
+				&& !checkCentrality(rp, sp, n1, d, pq.peek().centrality)) {
+				// stops if max. possible centrality is lower than the
+				// worst one in the priority queue
+				return;
+			}
+			for (Edge ae : p2.getKnows()) {
+				KnowsEdge edge = (KnowsEdge) ae;
+				Person adjPerson = (Person) edge.getOtherNode(p2);
+				if (!vertices.contains(adjPerson) || visited.contains(adjPerson)) 
+					continue;
+				visited.add(adjPerson);
+				IntPair newPair = new IntPair(adjPerson.getId(),d + 1);
+				queue.add(newPair);
+			}
+		}	
+	}
+	
 	public String query4(int k, String tagName) {
 		// finding the tag with the given name
-		Tag tag = null;
+		Tag tag = new Tag(0);
 		for (int idTag : db.getAllTags()) {
 			Tag node = db.getTag(idTag);
 			try {
@@ -407,41 +486,68 @@ public class QueryHandler implements Runnable {
 			new PriorityQueue<PersonCentrality> 
 				(k + 1, new PersonCentralityComparator());
 		int cnt = 0;
+		
 		for (Person p : sortedVertices) {
 			if (3*cnt++ > vertices.size()) 
 				break;
-			HashSet<Person> visited = new HashSet<Person> ();
+			HashSet<Person> visited = new HashSet<Person>();
 			
-			LinkListInt queue = new LinkListInt(db.getNumPersons());
-			LinkListInt dist = new LinkListInt(db.getNumPersons());
-
-			queue.add(p.getId());
-			dist.add(0);
+			//ConcurrentLinkedQueue<IntPair> queue = new ConcurrentLinkedQueue<IntPair>();
+			List<IntPair> list = new LinkedList<IntPair>();
+			List<IntPair> queue = Collections.synchronizedList(list);
+			//ConcurrentLinkedQueue<Integer> queue = new ConcurrentLinkedQueue<Integer>();
+			//ConcurrentLinkedQueue<Integer> dist = new ConcurrentLinkedQueue<Integer>();
+			IntPair pair = new IntPair(p.getId(),0);
+			queue.add(pair);
 			visited.add(p);
 			long rp = -1, sp = 0;
-			// do a BFS to compute relevant quantities rp, sp				
-			while (!queue.isEmpty()) {
-				Person p2 = db.getPerson(queue.removeFirst());
-				int d = dist.removeFirst();
-				// visit only vertices with the given forum tag
-				rp++;
-				sp += d;
-				if (pq.size() >= k
-					&& !checkCentrality(rp, sp, n1, d, pq.peek().centrality)) {
-					// stops if max. possible centrality is lower than the
-					// worst one in the priority queue
-					break;
+			// do a BFS to compute relevant quantities rp, sp	
+			
+			while ( !queue.isEmpty() ) {
+				ExecutorService pool = Executors.newCachedThreadPool();
+				List<IntPair> otherlist = new LinkedList<IntPair>();
+				List<IntPair> otherQueue = Collections.synchronizedList(otherlist);
+				//Thread threads[] = new Thread[queue.size()];
+				//int i = 0;
+				//int s = queue.size();
+				//IntPair[] pairs = new IntPair[s];
+				//int i=0;
+				//while (!queue.isEmpty()) {
+				//	pairs[i] = queue.remove(0);
+					
+					//threads[i] = new Thread(bfs);
+					//i++;
+				//}
+				//for(IntPair pr: pairs) {
+				while( !queue.isEmpty()) {
+					IntPair pr = queue.remove(0);
+					bfsinternal bfs = new bfsinternal(pr,
+							otherQueue, 
+							   pq, 
+							   visited,
+							   vertices,
+							   rp, sp, k, n1);
+					pool.submit(bfs);
 				}
-				for (Edge ae : p2.getKnows()) {
-					KnowsEdge edge = (KnowsEdge) ae;
-					Person adjPerson = (Person) edge.getOtherNode(p2);
-					if (!vertices.contains(adjPerson) || visited.contains(adjPerson)) 
-						continue;
-					visited.add(adjPerson);
-					queue.add(adjPerson.getId());
-					dist.add(d + 1);
+				try {
+					pool.shutdown();
+					pool.awaitTermination(10, TimeUnit.MINUTES);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
 				}
-			}			
+				queue = otherQueue;
+				//for (k=0;k<i;k++) {
+					//threads[k].start();
+				//}
+//				for(int j=0;j<i;j++) {
+//					try {
+//						threads[j].join();
+//					} catch (InterruptedException e) {
+//						e.printStackTrace();
+//					}
+//				}
+				
+			}
 			pq.add(new PersonCentrality(p, new Centrality(rp*rp, n1*sp)));
 			if (pq.size() > k) pq.poll();
 		}
@@ -452,6 +558,8 @@ public class QueryHandler implements Runnable {
 		}
 		return queryAns;
 	}
+	
+	
 
 	public void solveQueries() {
 		for (String query : queries) {
