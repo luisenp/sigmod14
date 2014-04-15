@@ -15,8 +15,6 @@ import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
 import sigmod14.util.LinkListInt;
-import sigmod14.util.LinkListPSP;
-import sigmod14.util.PersonShortPair;
 
 public class QueryHandler implements Runnable {
 	private Database db;
@@ -26,9 +24,11 @@ public class QueryHandler implements Runnable {
 			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 
 	private boolean visited[];
-	private LinkListPSP queuePSP;
+	private boolean visited2[];
 	
 	private static short distances[][];
+	
+	private HashMap<Integer,Short> bfsDistances;
 	
 	public static enum QueryType {
 		TYPE1,
@@ -42,7 +42,8 @@ public class QueryHandler implements Runnable {
 		this.queries = queries;
 		answers = new HashMap<String,String> ();
 		visited = new boolean[db.getNumPersons()];
-		queuePSP = new LinkListPSP(db.getNumPersons());
+		visited2 = new boolean[db.getNumPersons()];
+		bfsDistances = new HashMap<Integer,Short> ();
 	}
 
 	public QueryHandler(Database db) {
@@ -234,42 +235,81 @@ public class QueryHandler implements Runnable {
 	// does a BFS on the induced graph, starting from p1 and counting the
 	// steps to reach p2
 	public String query1(int p1, int p2, int x) {
+		Person init = db.getPerson(p1);
 		Person goal = db.getPerson(p2);
-		if (goal == null) return "-1";
-//		queuePSP.reset();
-//		queuePSP.add(db.getPerson(p1), (short) 0);		
-		LinkedList<Integer> queue = new LinkedList<Integer> ();
-		LinkedList<Short> dist = new LinkedList<Short> ();
-		queue.add(p1);
-		dist.add((short) 0);
+		if (goal == null || init == null) return "-1";
+		if (p1 == p2) return "0";
+				
+		// Initializing forward BFS
+		LinkedList<Integer> queueFront = new LinkedList<Integer> ();
+		LinkedList<Short> distFront = new LinkedList<Short> ();
+		queueFront.add(p1);
+		distFront.add((short) 0);
 		Arrays.fill(visited, false);
 		visited[p1] = true;
-		short bestDistance = 10000;   
-		while (!queue.isEmpty()) {
-//			PersonShortPair psp = queuePSP.removeFirst();
-//			Person person = psp.getPerson();
-//			short d = psp.getDistance();
-			Person person = db.getPerson(queue.removeFirst());
-			short d = dist.removeFirst();
-			int pid = person.getId();
-			if (pid == p2) 
-				return String.valueOf(d);
-			for (Integer adjPersonID : person.getKnows().keySet()) {
+		bfsDistances.clear();
+		
+		// Initializing backwards BFS
+		LinkedList<Integer> queueBack = new LinkedList<Integer> ();
+		LinkedList<Short> distBack = new LinkedList<Short> ();
+		queueBack.add(p2);
+		distBack.add((short) 0);
+		Arrays.fill(visited2, false);
+		visited2[p2] = true;
+
+		// Expanding backwards frontier
+		int bestDistance = db.getNumPersons();
+		int level = db.getNumPersons();
+		while (!queueFront.isEmpty() && !queueBack.isEmpty()) {
+			Person personFront = db.getPerson(queueFront.removeFirst());
+			int dFront = distFront.removeFirst();
+			Person personBack = db.getPerson(queueBack.removeFirst());
+			int dBack = distBack.removeFirst();
+			
+			if (bestDistance != db.getNumPersons() && dBack > level) {
+				return String.valueOf(bestDistance);
+			}
+			
+			// Expanding forward frontier
+			for (Integer adjPersonID : personFront.getKnows().keySet()) {
 				Person adjPerson = db.getPerson(adjPersonID);
-				if (person.getReplies(adjPersonID) > x 
-						&& adjPerson.getReplies(person.getId()) > x) {
+				if (personFront.getReplies(adjPersonID) > x 
+						&& adjPerson.getReplies(personFront.getId()) > x) {
+					short dAdj = (short) (dFront + 1);
 					if (visited[adjPersonID]) 
 						continue;
 					visited[adjPersonID] = true;
 					if (adjPerson.equals(goal)) 
-						return String.valueOf(d + 1);
-//					queuePSP.add(adjPerson, (short) (d+1));
-					queue.add(adjPersonID);
-					dist.add((short) (d + 1));
+						return String.valueOf(dAdj);
+					queueFront.add(adjPersonID);
+					distFront.add(dAdj);
+					bfsDistances.put(adjPersonID, dAdj);
+				}
+			}
+
+			for (Integer adjPersonID : personBack.getKnows().keySet()) {
+				Person adjPerson = db.getPerson(adjPersonID);
+				if (personBack.getReplies(adjPersonID) > x 
+						&& adjPerson.getReplies(personBack.getId()) > x) {
+					short dAdj = (short) (dBack + 1);
+					if (visited2[adjPersonID]) 
+						continue;
+					visited2[adjPersonID] = true;
+					if (bfsDistances.containsKey(adjPersonID)) {
+						int candDist = bfsDistances.get(adjPersonID) + dAdj;
+						if (bestDistance > candDist) {
+							bestDistance = candDist;
+							level = dAdj;
+						}
+					}
+					if (adjPerson.equals(init)) 
+						return String.valueOf(dAdj);
+					queueBack.add(adjPersonID);
+					distBack.add(dAdj);
 				}
 			}
 		}
-		return bestDistance == 10000? "-1" : String.valueOf(bestDistance);
+		return "-1";
 	}
 	
 	public String query2(int k, String d) throws ParseException {
