@@ -4,9 +4,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 
-import sigmod14.mem.graph.Edge;
 import sigmod14.mem.graph.Forum;
-import sigmod14.mem.graph.KnowsEdge;
 import sigmod14.mem.graph.Node;
 import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
@@ -29,8 +27,6 @@ public class Database  {
 	private HashMapLong placeOrg;
 	private HashMapLong placeLocatedAtPlace;
 	private HashMap<String,String> namePlaces;
-
-	private HashMap<Edge,Edge> knowsEdges;
 	
 	private int numPersons;
 	
@@ -46,22 +42,8 @@ public class Database  {
 		placeOrg = new HashMapLong(10007);
 		placeLocatedAtPlace = new HashMapLong(10007);
 		namePlaces = new HashMap<String,String> (10007);
+	}
 		
-		knowsEdges = new HashMap<Edge,Edge> (1000003);
-	}
-	
-	// this method is used by DataLoader.loadCommentReplyTo() 
-	// to quickly find whether two persons know e/o
-	public 
-	KnowsEdge findUndirectedEdge(Node n1, Node n2) 
-			throws NotFoundException {
-		Node out = n1.getId() < n2.getId() ? n1 : n2;
-		Node in = n1.getId() < n2.getId() ? n2 : n1;
-		KnowsEdge e = new KnowsEdge(out, in);
-		if (knowsEdges.containsKey(e)) return (KnowsEdge) knowsEdges.get(e);
-		throw new NotFoundException();
-	}
-	
 	public void clearCommentCreator() {
 		commentCreator = null;
 	}
@@ -109,33 +91,16 @@ public class Database  {
 	
 	public void addReply(int replyID, int repliedToID) {
 		Person creatorReply = getCommentCreator(replyID);
-		Person creatorRepliedTo = getCommentCreator(repliedToID);
-		
-		KnowsEdge edge;
-		try {
-			edge = Database.INSTANCE.findUndirectedEdge(creatorReply, 
-								                        creatorRepliedTo);
-		} catch (NotFoundException e) {
-			// no point in keeping this reply, creators must know e/other
-			return;
-		}
-		if (edge.getOut().equals(creatorReply))
-			edge.incRepOut();
-		else
-			edge.incRepIn();
+		int creatorRepliedToID = getCommentCreator(repliedToID).getId();
+		if (creatorReply.knows(creatorRepliedToID))
+			creatorReply.addReply(creatorRepliedToID);
 	}
 	
 	public void addKnowsRelationship(int person1ID, int person2ID) {
-		Person person1 = addPerson(Math.min(person1ID, person2ID));
-		Person person2 = addPerson(Math.max(person1ID, person2ID));
-		KnowsEdge edge = new KnowsEdge(person1, person2);			
-		
-		// person_knows_person has both directed edges, we only need one
-		if (knowsEdges.containsKey(edge)) return;
-		
-		person1.addKnowsEdge(edge);
-		person2.addKnowsEdge(edge);
-		knowsEdges.put(edge, edge);
+		Person person1 = getPerson(person1ID);
+		Person person2 = getPerson(person2ID);		
+		person1.addKnows(person2ID);
+		person2.addKnows(person1ID);
 	}
 
 	public Tag addTag(int id) {
@@ -272,6 +237,5 @@ public class Database  {
 		System.err.println("Tags : " + tags.size());
 		System.err.println("Places : " + places.size());
 		System.err.println("Forums : " + forums.size());
-		System.err.println("Knows : " + knowsEdges.size());
 	}	
 }

@@ -10,8 +10,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
 
-import sigmod14.mem.graph.Edge;
-import sigmod14.mem.graph.KnowsEdge;
 import sigmod14.mem.graph.Node;
 import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
@@ -89,9 +87,7 @@ public class QueryHandler implements Runnable {
 					visited[personID] = true;
 					sizeComp++;
 					Person person = db.getPerson(personID);
-					for (Edge ae : person.getKnows()) {
-						KnowsEdge edge = (KnowsEdge) ae;
-						int idAdjPerson = edge.getOtherNode(person).getId();
+					for (Integer idAdjPerson : person.getKnows().keySet()) {
 						if (!vertices.contains(idAdjPerson)) continue;
 						stack.addFirst(idAdjPerson);
 					}
@@ -249,12 +245,10 @@ public class QueryHandler implements Runnable {
 			visited[pid] = true;
 			if (pid == p2) 
 				return String.valueOf(d);
-			for (Edge ae : person.getKnows()) {
-				KnowsEdge edge = (KnowsEdge) ae;
-				Person adjPerson = (Person) edge.getOtherNode(person);
-				short replyOut = edge.getRepOut();
-				short replyIn = edge.getRepIn();
-				if (replyIn > x && replyOut > x) {
+			for (Integer adjPersonID : person.getKnows().keySet()) {
+				Person adjPerson = db.getPerson(adjPersonID);
+				if (person.getReplies(adjPersonID) > x 
+						&& adjPerson.getReplies(person.getId()) > x) {
 					if (adjPerson.equals(goal)) 
 						return String.valueOf(d + 1);
 					queue.add(adjPerson);
@@ -343,9 +337,8 @@ public class QueryHandler implements Runnable {
 					if (pq.size() > k) pq.poll();
 				}
 				if (d == hops) continue;
-				for (Edge ae : p2.getKnows()) {
-					KnowsEdge edge = (KnowsEdge) ae;
-					queue.add((Person) edge.getOtherNode(p2));
+				for (Integer adjPersonID : p2.getKnows().keySet()) {
+					queue.add(db.getPerson(adjPersonID));
 					dist.add(d + 1);
 				}
 			}
@@ -432,9 +425,8 @@ public class QueryHandler implements Runnable {
 					// worst one in the priority queue
 					break;
 				}
-				for (Edge ae : p2.getKnows()) {
-					KnowsEdge edge = (KnowsEdge) ae;
-					Person adjPerson = (Person) edge.getOtherNode(p2);
+				for (Integer adjPersonID : p2.getKnows().keySet()) {
+					Person adjPerson = db.getPerson(adjPersonID);
 					if (!vertices.contains(adjPerson) || visited.contains(adjPerson)) 
 						continue;
 					visited.add(adjPerson);
@@ -533,11 +525,10 @@ public class QueryHandler implements Runnable {
 				if (visited.contains(cur.getId())) continue;
 				visited.add(cur.getId());
 				distances[p.getId()][cur.getId()] = d;
-				for (KnowsEdge edge : cur.getKnows()) {
-					short replyOut = edge.getRepOut();
-					short replyIn = edge.getRepIn();
-					if (replyIn > -1 && replyOut > -1) {
-						queue.add((Person) edge.getOtherNode(cur));
+				for (Integer adjPersonID : cur.getKnows().keySet()) {
+					Person adj = db.getPerson(adjPersonID);
+					if (cur.getReplies(adjPersonID) > -1 && adj.getReplies(cur.getId()) > -1) {
+						queue.add(adj);
 						dist.add((short) (d + 1));
 					}
 				}
