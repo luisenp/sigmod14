@@ -15,6 +15,8 @@ import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
 import sigmod14.util.LinkListInt;
+import sigmod14.util.LinkListPSP;
+import sigmod14.util.PersonShortPair;
 
 public class QueryHandler implements Runnable {
 	private Database db;
@@ -232,28 +234,27 @@ public class QueryHandler implements Runnable {
 	public String query1(int p1, int p2, int x) {
 		Person goal = db.getPerson(p2);
 		if (goal == null) return "-1";
-		LinkedList<Person> queue = new LinkedList<Person> ();
-		LinkedList<Short> dist = new LinkedList<Short> ();
+		LinkListPSP queue = new LinkListPSP(db.getNumPersons());
+		queue.add(db.getPerson(p1), (short) 0);
 		Arrays.fill(visited, false);
-		queue.addFirst(db.getPerson(p1));
-		dist.addFirst((short) 0);
+		visited[p1] = true;
 		short bestDistance = 10000;   
 		while (!queue.isEmpty()) {
-			Person person = queue.removeFirst();
-			short d = dist.removeFirst();
+			PersonShortPair psp = queue.removeFirst();
+			Person person = psp.getPerson();
+			short d = psp.getDistance();
 			int pid = person.getId();
-			if (visited[pid]) continue;
-			visited[pid] = true;
 			if (pid == p2) 
 				return String.valueOf(d);
 			for (Integer adjPersonID : person.getKnows().keySet()) {
 				Person adjPerson = db.getPerson(adjPersonID);
+				if (visited[adjPersonID]) continue;
+				visited[adjPersonID] = true;
 				if (person.getReplies(adjPersonID) > x 
 						&& adjPerson.getReplies(person.getId()) > x) {
 					if (adjPerson.equals(goal)) 
 						return String.valueOf(d + 1);
-					queue.add(adjPerson);
-					dist.add((short) (d + 1));
+					queue.add(adjPerson, (short) (d+1));
 				}
 			}
 		}
