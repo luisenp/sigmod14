@@ -2,6 +2,7 @@ package sigmod14.mem;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
@@ -11,9 +12,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.Collections;
 
@@ -392,70 +398,73 @@ public class QueryHandler implements Runnable {
 		}
 	}
 	
-	public class bfsinternal implements Runnable {
-		Database db;
-		Integer x = new Integer(0);
+//	
+
+	class BFSOuter implements Callable<BFSOuterResult>  {
+		Person p;
+		HashSet<Person> vertices;
+		HashSet<Person> visited = new HashSet<Person>();
 		List<IntPair> queue = new LinkedList<IntPair>();
-		//ConcurrentLinkedQueue<IntPair> queue = new ConcurrentLinkedQueue<IntPair>();
-		//ConcurrentLinkedQueue<Integer> queue = new ConcurrentLinkedQueue<Integer>();
-	    //ConcurrentLinkedQueue<Integer> dist = new ConcurrentLinkedQueue<Integer>();
-	    PriorityQueue<PersonCentrality> pq = new PriorityQueue<PersonCentrality>();
-	    HashSet<Person> visited = new HashSet<Person>();
-	    HashSet<Person> vertices = new HashSet<Person>();
-	    long rp = 0;
-	    long sp = 0;
-	    int k = 0;
-	    int n1 = 0;
-	    int d = 0;
+		PriorityQueue<PersonCentrality> pq;
+		int k;
+		int n1;
+		long rp = -1, sp = 0;
 		
-		bfsinternal(IntPair pair,
-				  //ConcurrentLinkedQueue<IntPair> queue, 
-				List<IntPair> queue,
-			      PriorityQueue<PersonCentrality> pq, 
-			      HashSet<Person> visited,
-			      HashSet<Person> vertices,
-			      long rp, long sp, int k, int n1){
-			this.x = pair.x;
-			this.d = pair.d;
-			this.queue = queue;
-			
-			this.pq = pq;
-			this.visited = visited;
+		BFSOuter(Person p, HashSet<Person> vertices, int k, PriorityQueue<PersonCentrality> pq, int n1) {
+			this.p = p;
 			this.vertices = vertices;
-			this.rp = rp;
-			this.sp = sp;
 			this.k = k;
+			this.pq = pq;
 			this.n1 = n1;
 		}
-		public void run() {
+		
+		public BFSOuterResult call() {
+			IntPair pair = new IntPair(p.getId(),0);
+			queue.add(pair);
+			visited.add(p);
+			long rp = -1, sp = 0;
+			// do a BFS to compute relevant quantities rp, sp	
 			
-			if (x == null) {
-				return;
+			while ( !queue.isEmpty() ) {
+//				
+				IntPair pr = queue.remove(0);
+				
+				Person p2 = Database.INSTANCE.getPerson(pr.x);
+				
+				// visit only vertices with the given forum tag
+				rp++;
+				sp += pr.d;
+				if (pq.size() >= k
+					&& !checkCentrality(rp, sp, n1, pr.d, pq.peek().centrality)) {
+					// stops if max. possible centrality is lower than the
+					// worst one in the priority queue
+					break;
+				}
+				for (Edge ae : p2.getKnows()) {
+					KnowsEdge edge = (KnowsEdge) ae;
+					Person adjPerson = (Person) edge.getOtherNode(p2);
+					if (!vertices.contains(adjPerson) || visited.contains(adjPerson)) 
+						continue;
+					visited.add(adjPerson);
+					IntPair newPair = new IntPair(adjPerson.getId(),pr.d + 1);
+					queue.add(newPair);
+				}
 			}
-			Person p2 = Database.INSTANCE.getPerson(x);
-			
-			// visit only vertices with the given forum tag
-			rp++;
-			sp += d;
-			if (pq.size() >= k
-				&& !checkCentrality(rp, sp, n1, d, pq.peek().centrality)) {
-				// stops if max. possible centrality is lower than the
-				// worst one in the priority queue
-				return;
-			}
-			for (Edge ae : p2.getKnows()) {
-				KnowsEdge edge = (KnowsEdge) ae;
-				Person adjPerson = (Person) edge.getOtherNode(p2);
-				if (!vertices.contains(adjPerson) || visited.contains(adjPerson)) 
-					continue;
-				visited.add(adjPerson);
-				IntPair newPair = new IntPair(adjPerson.getId(),d + 1);
-				queue.add(newPair);
-			}
-		}	
+			return new BFSOuterResult(p, rp,sp);
+		}
 	}
 	
-	public String query4(int k, String tagName) {
+	class BFSOuterResult {
+		Person p;
+		long rp, sp;
+		BFSOuterResult(Person p, long rp, long sp) {
+			this.p = p;
+			this.rp = rp;
+			this.sp = sp;
+		}
+	}
+	
+	public String query4(int k, String tagName) throws InterruptedException, ExecutionException {
 		// finding the tag with the given name
 		Tag tag = new Tag(0);
 		for (int idTag : db.getAllTags()) {
@@ -487,68 +496,21 @@ public class QueryHandler implements Runnable {
 				(k + 1, new PersonCentralityComparator());
 		int cnt = 0;
 		
+		//ExecutorService pool = Executors.newCachedThreadPool();
+		ExecutorService pool = Executors.newFixedThreadPool(16);
+		List<BFSOuter> tasks = new LinkedList<BFSOuter>();
 		for (Person p : sortedVertices) {
-			if (3*cnt++ > vertices.size()) 
-				break;
-			HashSet<Person> visited = new HashSet<Person>();
-			
-			//ConcurrentLinkedQueue<IntPair> queue = new ConcurrentLinkedQueue<IntPair>();
-			List<IntPair> list = new LinkedList<IntPair>();
-			List<IntPair> queue = Collections.synchronizedList(list);
-			//ConcurrentLinkedQueue<Integer> queue = new ConcurrentLinkedQueue<Integer>();
-			//ConcurrentLinkedQueue<Integer> dist = new ConcurrentLinkedQueue<Integer>();
-			IntPair pair = new IntPair(p.getId(),0);
-			queue.add(pair);
-			visited.add(p);
-			long rp = -1, sp = 0;
-			// do a BFS to compute relevant quantities rp, sp	
-			
-			while ( !queue.isEmpty() ) {
-				ExecutorService pool = Executors.newCachedThreadPool();
-				List<IntPair> otherlist = new LinkedList<IntPair>();
-				List<IntPair> otherQueue = Collections.synchronizedList(otherlist);
-				//Thread threads[] = new Thread[queue.size()];
-				//int i = 0;
-				//int s = queue.size();
-				//IntPair[] pairs = new IntPair[s];
-				//int i=0;
-				//while (!queue.isEmpty()) {
-				//	pairs[i] = queue.remove(0);
-					
-					//threads[i] = new Thread(bfs);
-					//i++;
-				//}
-				//for(IntPair pr: pairs) {
-				while( !queue.isEmpty()) {
-					IntPair pr = queue.remove(0);
-					bfsinternal bfs = new bfsinternal(pr,
-							otherQueue, 
-							   pq, 
-							   visited,
-							   vertices,
-							   rp, sp, k, n1);
-					pool.submit(bfs);
-				}
-				try {
-					pool.shutdown();
-					pool.awaitTermination(10, TimeUnit.MINUTES);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				queue = otherQueue;
-				//for (k=0;k<i;k++) {
-					//threads[k].start();
-				//}
-//				for(int j=0;j<i;j++) {
-//					try {
-//						threads[j].join();
-//					} catch (InterruptedException e) {
-//						e.printStackTrace();
-//					}
-//				}
-				
-			}
-			pq.add(new PersonCentrality(p, new Centrality(rp*rp, n1*sp)));
+			//if (3*cnt++ > vertices.size()) 
+			//	break;
+			tasks.add(new BFSOuter(p, vertices, k, pq, n1));
+		}
+		List<Future<BFSOuterResult>> results;
+		results = pool.invokeAll(tasks);
+		pool.shutdown();
+		for (Future<BFSOuterResult> r : results) {
+			BFSOuterResult res;
+			res = r.get();
+			pq.add(new PersonCentrality(res.p, new Centrality(res.rp*res.rp, n1*res.sp)));
 			if (pq.size() > k) pq.poll();
 		}
 		String queryAns = "";
@@ -561,7 +523,7 @@ public class QueryHandler implements Runnable {
 	
 	
 
-	public void solveQueries() {
+	public void solveQueries() throws InterruptedException, ExecutionException {
 		for (String query : queries) {
 			QueryType type = getQueryType(query);
 			String params[] = 
@@ -590,7 +552,15 @@ public class QueryHandler implements Runnable {
 	}
 	
 	public void run() {
-		solveQueries();
+		try {
+			solveQueries();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public HashMap<String,String> getAnswers() {
