@@ -497,7 +497,7 @@ public class QueryHandler implements Runnable {
 		int cnt = 0;
 		
 		//ExecutorService pool = Executors.newCachedThreadPool();
-		ExecutorService pool = Executors.newFixedThreadPool(16);
+		ExecutorService pool = Executors.newFixedThreadPool(Configuration.INSTANCE.getNThreadsQ4());
 		List<BFSOuter> tasks = new LinkedList<BFSOuter>();
 		for (Person p : sortedVertices) {
 			//if (3*cnt++ > vertices.size()) 
