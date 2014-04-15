@@ -26,6 +26,7 @@ public class QueryHandler implements Runnable {
 			new SimpleDateFormat("yyyy-MM-dd:HH:mm:SS");
 
 	private boolean visited[];
+	private LinkListPSP queuePSP;
 	
 	private static short distances[][];
 	
@@ -41,6 +42,7 @@ public class QueryHandler implements Runnable {
 		this.queries = queries;
 		answers = new HashMap<String,String> ();
 		visited = new boolean[db.getNumPersons()];
+		queuePSP = new LinkListPSP(db.getNumPersons());
 	}
 
 	public QueryHandler(Database db) {
@@ -234,27 +236,36 @@ public class QueryHandler implements Runnable {
 	public String query1(int p1, int p2, int x) {
 		Person goal = db.getPerson(p2);
 		if (goal == null) return "-1";
-		LinkListPSP queue = new LinkListPSP(db.getNumPersons());
-		queue.add(db.getPerson(p1), (short) 0);
+//		queuePSP.reset();
+//		queuePSP.add(db.getPerson(p1), (short) 0);		
+		LinkedList<Integer> queue = new LinkedList<Integer> ();
+		LinkedList<Short> dist = new LinkedList<Short> ();
+		queue.add(p1);
+		dist.add((short) 0);
 		Arrays.fill(visited, false);
 		visited[p1] = true;
 		short bestDistance = 10000;   
 		while (!queue.isEmpty()) {
-			PersonShortPair psp = queue.removeFirst();
-			Person person = psp.getPerson();
-			short d = psp.getDistance();
+//			PersonShortPair psp = queuePSP.removeFirst();
+//			Person person = psp.getPerson();
+//			short d = psp.getDistance();
+			Person person = db.getPerson(queue.removeFirst());
+			short d = dist.removeFirst();
 			int pid = person.getId();
 			if (pid == p2) 
 				return String.valueOf(d);
 			for (Integer adjPersonID : person.getKnows().keySet()) {
 				Person adjPerson = db.getPerson(adjPersonID);
-				if (visited[adjPersonID]) continue;
-				visited[adjPersonID] = true;
 				if (person.getReplies(adjPersonID) > x 
 						&& adjPerson.getReplies(person.getId()) > x) {
+					if (visited[adjPersonID]) 
+						continue;
+					visited[adjPersonID] = true;
 					if (adjPerson.equals(goal)) 
 						return String.valueOf(d + 1);
-					queue.add(adjPerson, (short) (d+1));
+//					queuePSP.add(adjPerson, (short) (d+1));
+					queue.add(adjPersonID);
+					dist.add((short) (d + 1));
 				}
 			}
 		}
