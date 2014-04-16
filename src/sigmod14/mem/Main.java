@@ -11,7 +11,7 @@ import java.util.Scanner;
 // TODO The singleton design seems ugly. Consider changing later
 public class Main {
 	public static void main(String[] args) {
-		String charset = args[3]; // "ISO-8859-1";// "UTF-8"; //                
+		String charset = args[3];                
 		DataLoader loader = DataLoader.INSTANCE;
 		loader.setCharset(charset);				
 		loader.setDataDirectory(args[0]);
@@ -29,10 +29,6 @@ public class Main {
 			e.printStackTrace();
 			System.exit(-1);
 		}
-//		Database.INSTANCE.printDatabaseInfo();
-		
-		if (Database.INSTANCE.getNumPersons() > 11000) 
-			return;
 		
 		long time = System.currentTimeMillis();
 

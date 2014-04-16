@@ -257,7 +257,6 @@ public class QueryHandler implements Runnable {
 		Arrays.fill(visited2, false);
 		visited2[p2] = true;
 
-		// Expanding backwards frontier
 		int bestDistance = db.getNumPersons();
 		int level = db.getNumPersons();
 		while (!queueFront.isEmpty() && !queueBack.isEmpty()) {
@@ -287,6 +286,7 @@ public class QueryHandler implements Runnable {
 				}
 			}
 
+			// Expanding backwards frontier
 			for (Integer adjPersonID : personBack.getKnows().keySet()) {
 				Person adjPerson = db.getPerson(adjPersonID);
 				if (personBack.getReplies(adjPersonID) > x 
@@ -423,6 +423,7 @@ public class QueryHandler implements Runnable {
 	}
 	
 	public String query4(int k, String tagName) {
+		if (db.getNumPersons() > 11000) return "-1";
 		// finding the tag with the given name
 		Tag tag = null;
 		for (int idTag : db.getAllTags()) {
