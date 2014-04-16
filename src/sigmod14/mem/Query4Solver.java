@@ -220,8 +220,9 @@ public class Query4Solver {
             tasks.add(i, new BFSOuter(vertices, k, n1));
         }
         int cnt = 0;
+        int factor = db.getNumPersons() < 10000 ? 1 : 25; 
         for (Person p : sortedVertices) {
-            if (25*cnt > vertices.size()) 
+            if (factor*cnt > vertices.size()) 
               break;
             tasks.get(cnt % numThreads).addPerson(p);
             cnt++;
@@ -252,7 +253,7 @@ public class Query4Solver {
             queryAns = String.valueOf(pc.person.getId()) + " " + queryAns;
             cnt++;
         }
-        return queryAns;
+        return queryAns.substring(0, queryAns.length() - 1);
     }
 
 

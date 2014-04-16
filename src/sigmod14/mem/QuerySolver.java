@@ -190,8 +190,7 @@ public class QuerySolver implements Runnable {
 	}
 	
 	
-	// does a BFS on the induced graph, starting from p1 and counting the
-	// steps to reach p2
+	// bi-directional BFS using a bunch of termination checks to speed it up
 	public String query1(int p1, int p2, int x) {
 		Person init = db.getPerson(p1);
 		Person goal = db.getPerson(p2);
@@ -227,6 +226,10 @@ public class QuerySolver implements Runnable {
 				return String.valueOf(bestDistance);
 			}
 			
+			if (bestDistance <= dFront + 1) {
+				return String.valueOf(bestDistance);
+			}
+			
 			// Expanding forward frontier
 			for (Integer adjPersonID : personFront.getKnows().keySet()) {
 				Person adjPerson = db.getPerson(adjPersonID);
@@ -238,6 +241,9 @@ public class QuerySolver implements Runnable {
 					visited[adjPersonID] = true;
 					if (adjPerson.equals(goal)) 
 						return String.valueOf(dAdj);
+//					if (adjPerson.getKnows().containsKey(p2)) {
+//						bestDistance = Math.min(bestDistance, dFront + 2);
+//					}
 					queueFront.add(adjPersonID);
 					distFront.add(dAdj);
 					bfsDistances.put(adjPersonID, dAdj);
@@ -294,7 +300,7 @@ public class QuerySolver implements Runnable {
 			}
 		}
 		
-		return topTags;
+		return topTags.substring(0,topTags.length() - 1);
 	}
 	
 	private boolean personIsLocatedAt(int personID, int placeID) {
@@ -359,7 +365,7 @@ public class QuerySolver implements Runnable {
 		while (!pq.isEmpty()) 
 			topPairs = pq.poll().toString() + " " + topPairs;
 		
-		return topPairs;
+		return topPairs.substring(0, topPairs.length() - 1);
 	}
 	
 	public HashMap<String,String> getAnswers() {
