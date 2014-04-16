@@ -32,44 +32,24 @@ public class Main {
 		
 		long time = System.currentTimeMillis();
 
-		int nThreads = Integer.parseInt(args[2]);
-		QueryHandler handlers[] = new QueryHandler[nThreads];
-		for (int i = 0; i < nThreads; i++) {		
-			handlers[i] = new QueryHandler(Database.INSTANCE);
-		}
+		int numThreads = Integer.parseInt(args[2]);
 		LinkedList<String> queries = new LinkedList<String> ();
 		try {
-			int cnt = 0;
 			Scanner scanner = new Scanner(new File(args[1]), charset);
 			while (scanner.hasNextLine()) {
 				String query = scanner.nextLine();
 				queries.add(query);
-				handlers[cnt % nThreads].addQuery(query);
-				cnt++;
 			}
 			scanner.close();
-			System.err.println("Total number of queries: " + cnt);
+			System.err.println("Total number of queries: " + queries.size());
 		} catch (FileNotFoundException e) {
 			System.err.println("ERROR: File not found");
 			System.exit(-1);
-		}
-
-		Thread threads[] = new Thread[nThreads];
-		for (int i = 0; i < nThreads; i++) {	
-			threads[i] = new Thread(handlers[i]);
-			threads[i].start();
-		}
-
-		HashMap<String, String> answers = new HashMap<String, String> (); 
-		try {
-			for (int i = 0; i < nThreads; i++) {
-				threads[i].join();
-				answers.putAll(handlers[i].getAnswers());
-			}
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+		}		
 		
+		QueryHandler handler = new QueryHandler(Database.INSTANCE, queries);
+		handler.solveQueries(numThreads);
+		HashMap<String, String> answers = handler.getAnswers();
 		for (String query : queries) {
 			System.out.println(answers.get(query));
 		}
