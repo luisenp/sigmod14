@@ -1,6 +1,5 @@
 package sigmod14.mem;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -9,7 +8,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -111,65 +109,68 @@ public class Query4Solver {
 		return true;
 	}
 
-    class BFSOuter implements Callable<PriorityQueue<PersonCentrality>>  {
-    	LinkedList<Person> persons;
+    class BFSOuter implements Callable<BFSOuterResult>  {
+        Person p;
         HashSet<Person> vertices;
         PriorityQueue<PersonCentrality> pq;
         int k;
         int n1;
         long rp = -1, sp = 0;
 
-        BFSOuter(HashSet<Person> vertices, int k, int n1) {
-        	this.persons = new LinkedList<Person>();
-        	this.pq = 
-        		new PriorityQueue<PersonCentrality> 
-        							(k + 1, new PersonCentralityComparator());
+        BFSOuter(Person p, HashSet<Person> vertices, int k, PriorityQueue<PersonCentrality> pq, int n1) {
+            this.p = p;
             this.vertices = vertices;
             this.k = k;
+            this.pq = pq;
             this.n1 = n1;
         }
-
-        public void addPerson(Person p) {
-        	persons.add(p);
-        }
         
-        public PriorityQueue<PersonCentrality> call() {
-        	for (Person p : persons) {            	
-            	HashSet<Person> visited = new HashSet<Person>();
-    			LinkListInt queue = new LinkListInt(db.getNumPersons());
-    			LinkListInt dist = new LinkListInt(db.getNumPersons());
+        public BFSOuterResult call() {
+        	HashSet<Person> visited = new HashSet<Person>();
+			LinkListInt queue = new LinkListInt(db.getNumPersons());
+			LinkListInt dist = new LinkListInt(db.getNumPersons());
 
-    			queue.add(p.getId());
-    			dist.add(0);
-    			visited.add(p);
-    			long rp = -1, sp = 0;
-    			// do a BFS to compute relevant quantities rp, sp				
-    			while (!queue.isEmpty()) {
-    				Person p2 = db.getPerson(queue.removeFirst());
-    				int d = dist.removeFirst();
-    				// visit only vertices with the given forum tag
-    				rp++;
-    				sp += d;
-    				if (pq.size() >= k
-    					&& !checkCentrality(rp, sp, n1, d, pq.peek().centrality)) {
-    					// stops if max. possible centrality is lower than the
-    					// worst one in the priority queue
-    					break;
-    				}
-    				for (Integer adjPersonID : p2.getKnows().keySet()) {
-    					Person adjPerson = db.getPerson(adjPersonID);
-    					if (!vertices.contains(adjPerson) 
-    							|| visited.contains(adjPerson)) 
-    						continue;
-    					visited.add(adjPerson);
-    					queue.add(adjPerson.getId());
-    					dist.add(d + 1);
-    				}
-    			}	
-	            pq.add(new PersonCentrality(p, new Centrality(rp*rp, n1*sp)));
-	            if (pq.size() > k) pq.poll();
-        	}
-        	return pq;
+			queue.add(p.getId());
+			dist.add(0);
+			visited.add(p);
+			long rp = -1, sp = 0;
+			// do a BFS to compute relevant quantities rp, sp				
+			while (!queue.isEmpty()) {
+				Person p2 = db.getPerson(queue.removeFirst());
+				int d = dist.removeFirst();
+				// visit only vertices with the given forum tag
+				rp++;
+				sp += d;
+				if (pq.size() >= k
+					&& !checkCentrality(rp, sp, n1, d, pq.peek().centrality)) {
+					// stops if max. possible centrality is lower than the
+					// worst one in the priority queue
+					break;
+				}
+				for (Integer adjPersonID : p2.getKnows().keySet()) {
+					Person adjPerson = db.getPerson(adjPersonID);
+					if (!vertices.contains(adjPerson) 
+							|| visited.contains(adjPerson)) 
+						continue;
+					visited.add(adjPerson);
+					queue.add(adjPerson.getId());
+					dist.add(d + 1);
+				}
+			}	
+//            pq.add(new PersonCentrality(p, new Centrality(rp*rp, n1*sp)));
+//            if (pq.size() > k) pq.poll();
+            return new BFSOuterResult(p, rp,sp);
+        }
+    }
+
+
+    class BFSOuterResult {
+        Person p;
+        long rp, sp;
+        BFSOuterResult(Person p, long rp, long sp) {
+            this.p = p;
+            this.rp = rp;
+            this.sp = sp;
         }
     }
     
@@ -194,52 +195,43 @@ public class Query4Solver {
         for (Person person : tag.getMembersForums()) {
             vertices.add(person);
         }
-        Person sortedVertices[] = vertices.toArray(new Person[vertices.size()]);        
+        Person sortedVertices[] = vertices.toArray(new Person[vertices.size()]);
         Arrays.sort(sortedVertices, new PersonDegreeComparator());
 
         int n1 = vertices.size() - 1;
 
-        ExecutorService pool = Executors.newFixedThreadPool(numThreads);
-        ArrayList<BFSOuter> tasks = new ArrayList<BFSOuter>(numThreads);
-        for (int i = 0; i < numThreads; i++) {
-            tasks.add(i, new BFSOuter(vertices, k, n1));
-        }
-        int cnt = 0;
-        for (Person p : sortedVertices) {
-            if (4*cnt > vertices.size()) 
-              break;
-            tasks.get(cnt % numThreads).addPerson(p);
-            cnt++;
-        }
+        // from each node p on the graph, do a BFS and compute centrality
         PriorityQueue<PersonCentrality> pq =
-                new PriorityQueue<PersonCentrality> 
-                    (k + 1, new PersonCentralityComparator());
- 
+            new PriorityQueue<PersonCentrality>
+                (k + 1, new PersonCentralityComparator());
+        int cnt = 0;
+        ExecutorService pool = Executors.newFixedThreadPool(numThreads);
+        List<BFSOuter> tasks = new LinkedList<BFSOuter>();
+        for (Person p : sortedVertices) {
+            if (4*cnt++ > vertices.size())
+              break;
+            tasks.add(new BFSOuter(p, vertices, k, pq, n1));
+        }
+
         try {
-        	List<Future<PriorityQueue<PersonCentrality>>> results = 
-        			pool.invokeAll(tasks);
-	        for (Future<PriorityQueue<PersonCentrality>> r : results) {        	
-				
-					PriorityQueue<PersonCentrality> pqThread = r.get();
-		            pq.addAll(pqThread);
-		            while (pq.size() > k) 
-		            	pq.poll();
+	        List<Future<BFSOuterResult>> results = pool.invokeAll(tasks);
+	        pool.shutdown();
+	        for (Future<BFSOuterResult> r : results) {
+	            BFSOuterResult res;
+	            res = r.get();
+	            pq.add(new PersonCentrality(res.p, new Centrality(res.rp*res.rp, n1*res.sp)));
+	            if (pq.size() > k) pq.poll();
 	        }
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-        pool.shutdown();
-        
-        cnt = 0;
+        } catch (Exception e) {
+        	e.printStackTrace();
+        }
         String queryAns = "";
-        while (cnt < k) {
+        while (!pq.isEmpty()) {
             PersonCentrality pc = pq.poll();
             queryAns = String.valueOf(pc.person.getId()) + " " + queryAns;
-            cnt++;
         }
         return queryAns;
     }
-
 
 	public HashMap<String,String> getAnswers() {
 		return answers;

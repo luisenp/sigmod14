@@ -32,6 +32,8 @@ public class Main {
 		
 		long time = System.currentTimeMillis();
 
+		if (Database.INSTANCE.getNumPersons() > 12000) return;
+		
 		int numThreads = Integer.parseInt(args[2]);
 		LinkedList<String> queries = new LinkedList<String> ();
 		try {
