@@ -26,29 +26,27 @@ public class QueryHandler {
 	}
 		
 	public void solveQueries(int numThreads) {		
-		Query123Solver solvers123[] = new Query123Solver[numThreads];
-		
+		QuerySolver solvers[] = new QuerySolver[numThreads];		
 		for (int i = 0; i < numThreads; i++)
-			solvers123[i] = new Query123Solver(db);
+			solvers[i] = new QuerySolver(db);
 		int cnt = 0;
 		for (String query : queries) {
 			QueryType type = getQueryType(query);
 			if (type != QueryType.TYPE4)
-				solvers123[cnt % numThreads].addQuery(query);
+				solvers[cnt % numThreads].addQuery(query);
 			else
-				solvers123[(cnt % numThreads)/2].addQuery(query);
+				solvers[(cnt % numThreads)/2].addQuery(query);
 			cnt++;
 		}		
 		Thread threads[] = new Thread[numThreads];
 		for (int i = 0; i < numThreads; i++) {
-			threads[i] = new Thread(solvers123[i]);
+			threads[i] = new Thread(solvers[i]);
 			threads[i].start();
 		}
-
 		for (int i = 0; i < numThreads; i++) {
 			try {
 				threads[i].join();
-				answers.putAll(solvers123[i].getAnswers());
+				answers.putAll(solvers[i].getAnswers());
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

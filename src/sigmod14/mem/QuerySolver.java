@@ -16,7 +16,7 @@ import sigmod14.mem.graph.NotFoundException;
 import sigmod14.mem.graph.Person;
 import sigmod14.mem.graph.Tag;
 
-public class Query123Solver implements Runnable {
+public class QuerySolver implements Runnable {
 	private Database db;
 	private LinkedList<String> queries;
 	private HashMap<String,String> answers;
@@ -28,7 +28,7 @@ public class Query123Solver implements Runnable {
 	
 	private HashMap<Integer,Short> bfsDistances;
 		
-	public Query123Solver(Database db, LinkedList<String> queries) {
+	public QuerySolver(Database db, LinkedList<String> queries) {
 		this.db = db;
 		this.queries = queries;
 		answers = new HashMap<String,String> ();
@@ -37,7 +37,7 @@ public class Query123Solver implements Runnable {
 		bfsDistances = new HashMap<Integer,Short> ();
 	}
 
-	public Query123Solver(Database db) {
+	public QuerySolver(Database db) {
 		this(db, new LinkedList<String> ());
 	}
 	
