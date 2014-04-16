@@ -181,6 +181,10 @@ public class Query123Solver implements Runnable {
 				int k = Integer.parseInt(params[0]);
 				int hops = Integer.parseInt(params[1]);
 				this.answers.put(query, query3(k, hops, params[2]));
+			} else if (type.equals(QueryType.TYPE4)) {
+				int k = Integer.parseInt(params[0]);
+				Query4Solver solver4 = new Query4Solver(db, 1);
+				answers.put(query, solver4.query4(k, params[1]));
 			}
 		}
 	}

@@ -85,13 +85,28 @@ public class Query4Solver {
 		
 	}
 
-	private static class 
-	PersonDegreeComparator implements Comparator<Person> {		
-		public int compare(Person p1, Person p2) {
-			return -1*Integer.compare(p1.getKnows().size(), p2.getKnows().size());
+	private class 
+	PersonDegreeComparator implements Comparator<Person> {
+		HashMap<Person,Integer> degrees = new HashMap<Person,Integer> ();
+		
+		private int getDegree(Person p) {
+			if (degrees.containsKey(p)) return degrees.get(p);
+			HashSet<Integer> connect2 = new HashSet<Integer>();
+			for (Integer p2id : p.getKnows().keySet()) {
+				Person p2 = db.getPerson(p2id);
+				connect2.add(p2id);
+				for (Integer p3id : p2.getKnows().keySet())
+					connect2.add(p3id);
+			}
+			degrees.put(p, connect2.size());
+			return connect2.size();
 		}
 		
+		public int compare(Person p1, Person p2) {
+			return -1*Integer.compare(getDegree(p1), getDegree(p2));
+		}		
 	}	
+	
 
 	// returns false if the maximum possible centrality with the 
 	// given parameters is guaranteed to be lower or equal than c. 
@@ -206,7 +221,7 @@ public class Query4Solver {
         }
         int cnt = 0;
         for (Person p : sortedVertices) {
-            if (4*cnt > vertices.size()) 
+            if (25*cnt > vertices.size()) 
               break;
             tasks.get(cnt % numThreads).addPerson(p);
             cnt++;
