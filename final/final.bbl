@@ -1,0 +1,45 @@
+\begin{thebibliography}{1}
+
+\bibitem{angles2008survey}
+R.~Angles and C.~Gutierrez.
+\newblock Survey of graph database models.
+\newblock {\em ACM Computing Surveys (CSUR)}, 40(1):1, 2008.
+
+\bibitem{codd1970relational}
+E.~F. Codd.
+\newblock A relational model of data for large shared data banks.
+\newblock {\em Communications of the ACM}, 13(6):377--387, 1970.
+
+\bibitem{he2008graphs}
+H.~He and A.~K. Singh.
+\newblock Graphs-at-a-time: query language and access methods for graph
+  databases.
+\newblock In {\em Proceedings of the 2008 ACM SIGMOD international conference
+  on Management of data}, pages 405--418. ACM, 2008.
+
+\bibitem{IanRobinson:2013ul}
+J.~W. Ian~Robinson and E.~Eifrem.
+\newblock {GraphDatabases}.
+\newblock pages 1--223, May 2013.
+
+\bibitem{low2010graphlab}
+Y.~Low, J.~Gonzalez, A.~Kyrola, D.~Bickson, C.~Guestrin, and J.~M. Hellerstein.
+\newblock Graphlab: A new framework for parallel machine learning.
+\newblock {\em arXiv preprint arXiv:1006.4990}, 2010.
+
+\bibitem{rodriguez2011graph}
+M.~A. Rodriguez and P.~Neubauer.
+\newblock The graph traversal pattern., 2011.
+
+\bibitem{sun2012efficient}
+Z.~Sun, H.~Wang, H.~Wang, B.~Shao, and J.~Li.
+\newblock Efficient subgraph matching on billion node graphs.
+\newblock {\em Proceedings of the VLDB Endowment}, 5(9):788--799, 2012.
+
+\bibitem{wang2004scalable}
+C.~Wang, W.~Wang, J.~Pei, Y.~Zhu, and B.~Shi.
+\newblock Scalable mining of large disk-based graph databases.
+\newblock In {\em Proceedings of the tenth ACM SIGKDD international conference
+  on Knowledge discovery and data mining}, pages 316--325. ACM, 2004.
+
+\end{thebibliography}
