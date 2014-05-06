@@ -116,6 +116,13 @@ models).
 %this challenge.
 
 \section{Implementation}
+\subsection{Overall Approach}
+We divided the challange into two subtasks: first, read and index all
+of the data that is required to answer the queries (the `reading
+phase'); then, perform the queries and output results (the `query
+phase').  We found that both tasks' runtime was on the same order of
+magnitude.  
+
 \subsection{Data Representation}
 \subsubsection{Embedded Database Design}
 Originally, we designed our implementation around the open-source
@@ -227,8 +234,8 @@ hash table for each edge and node type is populated. In particular, the followin
 \item A placesIDWithNames table indexed by a string number specifying the place name. The value is a list of placeIDs that have that name (currently represented as a space separated string of place IDs).
 \end{itemize}
 
-These tables are populated by reading files such as person.csv, 
-comments.csv, tags.csv, comment\_hasCreator\_person.csv and so forth. 
+These tables are populated by reading files such as person.csv,
+comments.csv, tags.csv, comment\_hasCreator\_person.csv and so forth.
 Each node type stores edges to other nodes whenever there is a relationship
 that is useful for answering at least one of the queries. Specifically,
 the following edges are stored:
@@ -296,7 +303,16 @@ algorithm checks if the best possible centrality this person can
 achieve is smaller than the k-th best centrality seen so far. If it
 is, the BFS is stopped.
 
+\subsection{Concurrency}
+We introduced concurrent behavior in order to take full advantage of
+the multi-core test system (which is described in section
+\ref{sec:results}).  All concurrent behavior took place in the query
+phase.  Specifically, the queries were distributed evenly among
+available cores and run concurrently, and within queries of type four,
+the centrality of each individual was computed concurrently.
+
 \section{Results}
+\label{sec:results}
 \begin{figure}
   \centering
   \includegraphics[scale=0.5]{img/results.pdf}
