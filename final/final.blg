@@ -1,48 +1,5 @@
-This is BibTeX, Version 0.99d (TeX Live 2013)
-Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
-The top-level auxiliary file: final.aux
+This is BibTeX, Version 0.99dThe top-level auxiliary file: final.aux
 The style file: abbrv.bst
 Database file #1: final.bib
 Warning--empty journal in IanRobinson:2013ul
-You've used 8 entries,
-            2118 wiz_defined-function locations,
-            546 strings with 5006 characters,
-and the built_in function-call counts, 3000 in all, are:
-= -- 297
-> -- 148
-< -- 3
-+ -- 60
-- -- 50
-* -- 207
-:= -- 488
-add.period$ -- 25
-call.type$ -- 8
-change.case$ -- 49
-chr.to.int$ -- 0
-cite$ -- 9
-duplicate$ -- 112
-empty$ -- 225
-format.name$ -- 50
-if$ -- 634
-int.to.chr$ -- 0
-int.to.str$ -- 8
-missing$ -- 7
-newline$ -- 42
-num.names$ -- 16
-pop$ -- 56
-preamble$ -- 1
-purify$ -- 41
-quote$ -- 0
-skip$ -- 89
-stack$ -- 0
-substring$ -- 181
-swap$ -- 32
-text.length$ -- 3
-text.prefix$ -- 0
-top$ -- 0
-type$ -- 32
-warning$ -- 1
-while$ -- 30
-width$ -- 9
-write$ -- 87
 (There was 1 warning)

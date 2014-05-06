@@ -1,6 +1,5 @@
 \documentclass{article}
 
-\usepackage{natbib}
 \usepackage{hyperref}
 \usepackage{graphicx}
 
@@ -14,8 +13,8 @@ James Atwood and Luis Pineda \\ % alphabetical order
 \maketitle
 
 \section{Introduction}
-Our project was a submission to the SIGMOD 2014 programming challenge,
-where teams are provided with a large (relational) social network
+Our project was a submission to the SIGMOD 2014 programming challenge. 
+In this competition teams are provided with a large (relational) social network
 dataset and are asked to implement four queries related to the graph
 structure of the data.  Using a relatively simple design and
 incremental optimization, we were able to complete our Java
@@ -23,7 +22,7 @@ implementation by the April 15th deadline and submit it for
 evaluation.  According to the
 leaderboards\footnote{\url{http://www.cs.albany.edu/~sigmod14contest/leaders.html} under team name `shparg'},
 which provide preliminary results, our entry ranks 22nd out of 32
-total submissions.  Unfortunately, the final evaluation on held-out
+total submissions (see Figure \ref{fig:leader}).  Unfortunately, the final evaluation on held-out
 data will not be released until after this report has been written, so
 we can not report our official standing.
 
@@ -34,13 +33,21 @@ efficient mechanisms for representing and querying graph data is a
 challenging research problem that is currently the subject of
 considerable interest in the database community.
 
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.45]{img/leaderboard.png}
+  \label{fig:leader}
+  \caption{Final position of our team "shparg" in the SIGMOD programming challenge.}
+\end{figure}
+
 \section{Background and Related Work}
 \subsection{Challenge Description}
 
 \subsubsection{Data}
 We are provided with a relational dataset which describes a social
-network.  Example entities include people and places and example
-relations include 'knows' and 'lives at'.  Each entity and
+network.  Example entities include people, interest tags and places, 
+and example relations include 'person knows person', 'person works at place'
+and 'person has interest in tag'.  Each entity and
 relationship is stored as a pipe-delimited file.  Entity files are
 named after the entity type (e.g. `person.csv') and contain features.
 Relation files are named after the relation they contain
@@ -101,7 +108,7 @@ model first proposed by Codd \cite{codd1970relational}.  This model
 becomes awkward and inefficient when applied to graph data
 \cite{rodriguez2011graph}, particularly for queries related to
 complex structure (i.e., requiring more than nearest neighbors).  For
-an example, please see \cite{he2008graphs} Figures 1 and 2.  More
+an example, please see \cite{he2008graphs} (Figures 1 and 2).  More
 recent work has proposed other data models and query languages that
 more appropriately capture the rich structure evident in graph data;
 for instance,
@@ -157,13 +164,16 @@ answer the queries (i.e., comments and forums). With the right
 pre-processing this information is only needed to update information 
 only while the database is populated
 (e.g., how many comments have persons given to each other).
-We suspect that, at least for the 100k persons dataset, the 
-relevant part of the graph should fit in the 15Gb of available memory
-for the contest (our current implementation uses approx. 800Mb for 
-the 10k dataset). Overall, the current memory-based approach 
-both reduced the time it took to index the data and improved the speed 
-of the queries by orders of magnitude with respect to our initial
-Neo4j implementation.
+
+We confirmed on the SIGMOD system that this design could hold in memory a 
+100k persons dataset without exceeding the 15Gb of available memory for 
+the contest. Overall, the current memory-based approach both reduced the time it took 
+to index the data and improved the speed of the queries by several orders 
+of magnitude with respect to our initial Neo4j implementation. Moreover,
+during the actual contest it became clear that the running time of the more 
+difficult queries (in particular query4) was the real bottleneck, so the final
+simple design was largely motivated by attempting to solve all queries on the 100k 
+dataset after the data was completely loaded in memory. 
 
 %Accordingly, we propose the following approach.  Our primary data
 %abstraction will be an adjacency matrix over the nodes which
@@ -206,98 +216,115 @@ Neo4j implementation.
 %sparse Colt
 %matrix \footnote{\url{http://acs.lbl.gov/software/colt/api/cern/colt/matrix/package-summary.html}}.
 
-This memory-based design, implemented in Java, defines data structures for each 
-of the relevant entities defined in this database: person, tags, places and 
-forums. We also created a specialized edge structure for the person\_knows\_person
-relationship that, besides the pointer to the person nodes, also stores
-the number of comments that each of the persons have replied to the other (this
-is very useful to answer query 1 efficiently). 
 
-Using these structures, our current pipeline is as follows. When the program starts, a
-hash table for each edge and node type is populated. In particular, the following hash tables are maintained:
+\subsubsection{Data structures and indexes}
+This memory-based design, implemented in Java, defines the following data structures for each 
+of the relevant entities defined in this database: 
+\begin{itemize}
+\item \textbf{Person} stores a 32-bit integer representing the person's id, a 64-bit integer representing the person's birthday, a list of tag interests, a list of locations and a hash map of known persons associated with the replies given to each of them.
+\item \textbf{Tag} stores a 32-bit integer representing the tag's id, stores a string representing the tag name, a hash set of persons interested in this tag and a hash set of persons interested in this tag through a forum membership. 
+\item \textbf{Forum} stores a 32-bit integer representing the forum's id, and a list of tags this forum is associated with.
+\end{itemize}
+
+For each entity in the social network we create an instance of the corresponding data structure. Each type of entity is stored in its own in-memory table, which is indexed by the 32-bit id. In the case of the persons table, since the datasets always include all persons ids in the rage (e.g., ids 0 to 9,999 for the 10k dataset) we used a pre-allocated array of size 100k with a one to one mapping between the id and the array index; this lead to faster data loading and query response times. For all other entity types, we used hash maps indexes. 
+
+Additionally, we stored the following relationship tables: 
 
 \begin{itemize}
-\item A person node table indexed by a 64-bit id number.
-\item A tag node table indexed by a 64-bit id number.
-\item A place node table indexed by a 64-bit id number.
-\item A forum node table indexed by a 64-bit id number. 
-\item A commentIDCreatedBypersonID table indexed by a 64-bit id number.
-\item A organizationIDLocatedAtPlaceID table indexed by a 64-bit id number.
-\item A placeIDLocatedAtPlaceID table indexed by a 64-bit id number.
-\item A placesIDWithNames table indexed by a string number specifying the place name. The value is a list of placeIDs that have that name (currently represented as a space separated string of place IDs).
+\item \textbf{commentCreator} stores the 32-bit id of the person who created each comment, indexed by a 32-bit comment id. It is essentially and array where index \emph{i} stores the id of the person that created the comment with id \emph{i}. It's pre-allocated to a size of 700,000,000 comments, which is enough for the 100k dataset used in the SIGMOD preliminary evaluation. 
+\item \textbf{placeOrg} a hash map storing the place a given organization is located at.  
+\item \textbf{placeLocatedAtPlace} a hash map storing the place a given place is located at (e.g., Amherst is located in Massachusetts).  
+\item \textbf{namePlaces} Is hash map storing the ids of all places with a given name. Note that there can be different places (i.e., with different ids) having the same name string.
 \end{itemize}
 
 These tables are populated by reading files such as person.csv, 
 comments.csv, tags.csv, comment\_hasCreator\_person.csv and so forth. 
-Each node type stores edges to other nodes whenever there is a relationship
-that is useful for answering at least one of the queries. Specifically,
-the following edges are stored:
-
-\begin{itemize}
-\item A person node stores: a list of edges, one for each known person, a list of pointers to tag nodes the person is interested in, and a list of pointers to place nodes the person is located at.
-\item A tag node stores: a list of pointers to interested person nodes and a list of pointers to persons nodes that are members of forums with this tag. 
-\item A forum node stores: a list of pointers to tag nodes with the interests of the forum. 
-\end{itemize}
-
-%%% LUIS - is this still relevant? %%%
-%Additionally, each node type is indexed by properties that are 
-%relevant to the queries. Some examples are:
-%\begin{itemize}
-%\item Indexing tag nodes by id will be useful for performing efficient 
-%lookups for query 2.
-%\item Indexing organization and place nodes by id will be useful for 
-%performing efficient lookups for query 3.
-%\item Storing the number of common tags between two persons as part of 
-%the KNOWS relationship can be useful for query 3.
-%\item Indexing forums by id will be useful for performing efficient lookups 
-%for query 4.
-%\end{itemize}
+Most of the memory consumption is due to the \texttt{commentCreator} table.
+However, this table is only used temporarily during data loading, 
+to obtain the number of replies each person has given each other. After
+these numbers are stored in the persons table, the table \texttt{commentCreator}
+is cleared so that the memory can be used for other parts of the dataset. 
 
 \subsection{Query Implementations}
 
 We implement each query as a graph algorithm over the graph defined by
 the indexed data.
 
-\subsubsection{Query1} A breadth first search (BFS) of the
+\subsubsection{Query1} A bidirectional breadth first search (BFS) of the
 person\_knows\_person graph based on the constraint on number of replies
-x.  Edges with less than x replies are pruned by the BFS.
+x.  The hash map of neighbors stored by each person instance can be used
+to quickly prune edges that doesn't satisfy the constraint. 
 
 \subsubsection{Query2} Add all tags to a priority queue where the order of
 the tags is based on the size of the largest connected component of
-the induced graph. This uses the list of persons that are interested in the 
-tag, and information about the birthday stored by each person node. With
-this information, the induced graph is created on-the-fly and the size 
-of the connected component is computed using a BFS.
+the induced graph. To compute the connected components, we use the list of persons 
+that are interested in the tag, and information about the birthday stored 
+by each person node. We use this information to create the induced graph on-the-fly 
+and then compute the size of the largest connected component using several BFS.
               
-\subsubsection{Query3} placesIDWithNames is used to find all placeIDs with
+\subsubsection{Query3} \texttt{namePlaces} is used to find all places with
 the given name. For each of these places p, we do a linear scan to find 
 all persons located at p and add these persons to the induced graph. 
 To check if a person is located at p, we use both the 
 list of places stored by the person node, but also the table 
-placeIDLocatedAtPlaceID to recursively check if any place 
+\texttt{placeLocatedAtPlace} to recursively check if any place 
 in the induced hierarchy is contained in p. If at least one does, 
 the person is added to the induced graph.
               
 When all the relevant persons are added to the graph, 
 the similarity score of all possible pairs of persons in this
 graph is computed and these are added to a priority queue. To speed up
-the similarity computation, the list of persons
-interested in that tag node is indexed by person id. 
-Therefore the similarity between two persons can be computed in 
-linear time on the number of interest tags.
+the similarity computation we use the hash set of persons interested in
+each tag (where the hash is given by person id). Therefore the similarity 
+between two persons can be computed in linear time in the number of 
+interest tags.
               
 \subsubsection{Query4} First a linear search is used to find the tag with
 the given name. Then the induced graph of persons that are member of
-forums with this tag is created, using the list stored by each tag node.
+forums with this tag is created, using the list stored by each \texttt{Tag} instance.
                
-On the induced graph the centrality score of each person is computed
-by using a BFS. Every time a node is expanding during the BFS, the
+the induced graph the centrality score of each person is computed
+using a BFS. Every time a node is expanding during the BFS, the
 algorithm checks if the best possible centrality this person can
 achieve is smaller than the k-th best centrality seen so far. If it
-is, the BFS is stopped.
+is, the BFS is stopped. 
+
+In our final submission we used an approximate version of this algorithm
+in which person nodes are first sorted by non-increasing node degree in the 
+induced graph. Then we only considered the top $25\%$ of the nodes as 
+candidates for top k centrality nodes. This worked well on both the 1k and 10k
+datasets and reduced computation time significantly (see Figure \ref{fig:results}).
+However, there are no guarantees of correctness. 
+
+In a subsequent version (developed after the SIGMOD deadline), 
+we sorted persons by the number of persons they can reach within at most 
+two steps, and considered only the top $5\%$. This worked very well on the 
+10k dataset, significantly reducing the time it takes to solve Query 4. 
+However, it did not work on the 1k dataset. Nevertheless, it 
+should be possible to devise an exact version of this strategy based on some
+incremental pruning of approximate centrality computations. 
+
+\subsubsection{Use of multi-threading}
+To take advantage of the 8 cores provided by the SIGMOD system, we developed a 
+multi-threaded implementation of the query solver. Since the challenge involves 
+answering hundreds of queries, the easiest (and possibly best) way to take 
+advantage of parallelism is to cleverly distribute queries between different
+threads, instead of developing complex multi-threaded implementations of each 
+query. 
+
+In our final design, queries are uniformly distributed between 
+8 threads, under the assumption that all queries take approximately the same time
+to compute. This is true for our last approximate implementation of Query 4,
+although not for previous implementations. In previous versions, type 4 queries were
+orders of magnitude more costly than the other query types. Thus, we also 
+developed some versions in which 2 threads are exclusively dedicated to answer 
+type 4 queries and the remaining threads to other query types. 
+It is worth mentioning that we also experimented with a multi-threaded version of Query 4,
+ although we didn't obtain any significant computational savings from this version.
 
 \section{Results}
-\begin{figure}
+
+\begin{figure}[t]
   \centering
   \includegraphics[scale=0.5]{img/results.pdf}
   \label{fig:results}
@@ -310,8 +337,7 @@ is, the BFS is stopped.
     with 1,000 people.}
 \end{figure}
 
-Our implementation's performance is shown in Figure \ref{fig:results}.  All times were provided by the SIGMOD
-submission system.  According to the challenge description\footnote{\url{http://www.cs.albany.edu/~sigmod14contest/task.html}}, performance was measured on a server with the following specification:
+Our implementation's performance is shown in Figure \ref{fig:results}.  All times were provided by the SIGMOD submission system (measured in seconds).  According to the challenge description\footnote{\url{http://www.cs.albany.edu/~sigmod14contest/task.html}}, performance was measured on a server with the following specification:
 \begin{itemize}
 \item Processors: Two 2.67 GHz Intel Xeon E5430 (4 cores each, 8 cores total)
 \item Main Memory: 15 GB
@@ -347,6 +373,8 @@ submission system.  According to the challenge description\footnote{\url{http://
 %Since all queries can be answered independently are no data is added after 
 %the initial database population, implementing multiple threads should 
 %be straightforward.
+
+\newpage
 
 \bibliographystyle{abbrv}
 \bibliography{final}
