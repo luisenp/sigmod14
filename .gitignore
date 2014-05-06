@@ -2,6 +2,7 @@ proposal/*
 !proposal/tex
 !proposal/pdf
 midterm/*
+final/*
 !midterm/tex
 !midterm/pdf
 !final/tex
