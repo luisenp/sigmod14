@@ -4,6 +4,8 @@ proposal/*
 midterm/*
 !midterm/tex
 !midterm/pdf
+!final/tex
+!final/pdf
 bin/
 data/
 target/

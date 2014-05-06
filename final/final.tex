@@ -123,6 +123,13 @@ models).
 %this challenge.
 
 \section{Implementation}
+\subsection{Overall Approach}
+We divided the challange into two subtasks: first, read and index all
+of the data that is required to answer the queries (the `reading
+phase'); then, perform the queries and output results (the `query
+phase').  We found that both tasks' runtime was on the same order of
+magnitude.  
+
 \subsection{Data Representation}
 \subsubsection{Embedded Database Design}
 Originally, we designed our implementation around the open-source
@@ -304,7 +311,7 @@ However, it did not work on the 1k dataset. Nevertheless, it
 should be possible to devise an exact version of this strategy based on some
 incremental pruning of approximate centrality computations. 
 
-\subsubsection{Use of multi-threading}
+\subsection{Multi-threading}
 To take advantage of the 8 cores provided by the SIGMOD system, we developed a 
 multi-threaded implementation of the query solver. Since the challenge involves 
 answering hundreds of queries, the easiest (and possibly best) way to take 
@@ -322,9 +329,17 @@ type 4 queries and the remaining threads to other query types.
 It is worth mentioning that we also experimented with a multi-threaded version of Query 4,
  although we didn't obtain any significant computational savings from this version.
 
-\section{Results}
+\subsection{Concurrency}
+We introduced concurrent behavior in order to take full advantage of
+the multi-core test system (which is described in section
+\ref{sec:results}).  All concurrent behavior took place in the query
+phase.  Specifically, the queries were distributed evenly among
+available cores and run concurrently, and within queries of type four,
+the centrality of each individual was computed concurrently.
 
-\begin{figure}[t]
+\section{Results}
+\label{sec:results}
+\begin{figure}
   \centering
   \includegraphics[scale=0.5]{img/results.pdf}
   \label{fig:results}
