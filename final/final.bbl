@@ -1,4 +1,4 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 
 \bibitem{angles2008survey}
 R.~Angles and C.~Gutierrez.
@@ -26,6 +26,17 @@ J.~W. Ian~Robinson and E.~Eifrem.
 Y.~Low, J.~Gonzalez, A.~Kyrola, D.~Bickson, C.~Guestrin, and J.~M. Hellerstein.
 \newblock Graphlab: A new framework for parallel machine learning.
 \newblock {\em arXiv preprint arXiv:1006.4990}, 2010.
+
+\bibitem{okamoto2008ranking}
+K.~Okamoto, W.~Chen, and X.-Y. Li.
+\newblock Ranking of closeness centrality for large-scale social networks.
+\newblock In {\em Frontiers in Algorithmics}, pages 186--195. Springer, 2008.
+
+\bibitem{potamias2009fast}
+M.~Potamias, F.~Bonchi, C.~Castillo, and A.~Gionis.
+\newblock Fast shortest path distance estimation in large networks.
+\newblock In {\em Proceedings of the 18th ACM conference on Information and
+  knowledge management}, pages 867--876. ACM, 2009.
 
 \bibitem{rodriguez2011graph}
 M.~A. Rodriguez and P.~Neubauer.

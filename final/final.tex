@@ -18,7 +18,14 @@ submission\footnote{\url{https://github.com/luisenp/sigmod14}} to the
 SIGMOD 2014 programming challenge.  In this competition teams are
 provided with a large (relational) social network dataset and are
 asked to implement four queries related to the graph structure of the
-data.  Using a relatively simple design and incremental optimization,
+data. The motivation for choosing this project was
+twofold; first, there is a large (and quickly increasing) volume of
+graph-structured data available today, and second, developing
+efficient mechanisms for representing and querying graph data is a
+challenging research problem that is currently the subject of
+considerable interest in the database community.
+
+Using a relatively simple design and incremental optimization,
 we were able to complete our Java implementation by the April 15th
 deadline and submit it for evaluation.  According to the
 leaderboards\footnote{\url{http://www.cs.albany.edu/~sigmod14contest/leaders.html}
@@ -28,12 +35,7 @@ entry ranks 22nd out of 32 total submissions (see Figure
 data will not be released until after this report has been written, so
 we can not report our official standing.
 
-The motivation for choosing this project was
-twofold; first, there is a large (and quickly increasing) volume of
-graph-structured data available today, and second, developing
-efficient mechanisms for representing and querying graph data is a
-challenging research problem that is currently the subject of
-considerable interest in the database community.
+
 
 \begin{figure}[t]
   \centering
@@ -172,14 +174,14 @@ are due to nodes that need not persist through the query phase;
 examples include comments and forums. This information is required to
 persist only while the database is populated; for instance, comments
 nodes are required to compute the number of comments between people,
-but are not needed thereafter.  We confirmed on the SIGMOD system that
-this design could hold a 100k person dataset in memory without
-exceeding the 15Gb of available memory.
+but are not needed thereafter.  
 
-The in-memory approach reduced the time it took to both index the
-data and answer the queries by several orders of
-magnitude, with respect to our initial Neo4j implementation.  We
-accordingly moved forward with the in-memory design.
+We confirmed on the SIGMOD system that
+this design could hold a 100k person dataset in memory without
+exceeding the 15Gb of available memory. Moreover, the in-memory approach 
+reduced the time it took to both index the data and answer the queries 
+by several orders of magnitude with respect to our initial Neo4j implementation.  Thus, 
+we accordingly moved forward with the in-memory design.
 
 %Moreover, during the
 %actual contest it became clear that the running time of the more
@@ -235,7 +237,7 @@ Our Java implementation of the in-memory design defines the following
 data structures for each of the relevant entities in the contest data.
 
 \begin{itemize}
-\item \textbf{Person} stores a 32-bit integer representing the person's id, a 64-bit integer representing the person's birthday, a list of tag interests, a list of locations and a hash map of known persons associated with the replies given to each of them.
+\item \textbf{Person} stores a 32-bit integer representing the person's id, a 64-bit integer representing the person's birthday, a list of tag interests, a list of locations the person lives, works or studies at, and a hash map of known persons and the replies given to each of them.
 \item \textbf{Tag} stores a 32-bit integer representing the tag's id, a string representing the tag name, a hash set of persons interested in this tag and a hash set of persons interested in this tag through a forum membership. 
 \item \textbf{Forum} stores a 32-bit integer representing the forum's id and a list of tags this forum is associated with.
 \end{itemize}
@@ -245,7 +247,7 @@ For each entity in the social network we create an instance of the corresponding
 Additionally, we stored the following relationship tables: 
 
 \begin{itemize}
-\item \textbf{commentCreator} stores the 32-bit id of the person who created each comment, indexed by a 32-bit comment id. It is essentially and array where index \emph{i} stores the id of the person that created the comment with id \emph{i}. It's pre-allocated to a size of 700,000,000 comments, which is enough for the 100k dataset used in the SIGMOD preliminary evaluation. 
+\item \textbf{commentCreator} stores the 32-bit id of the person who created each comment, indexed by a 32-bit comment id. It is essentially an array where index \emph{i} stores the id of the person that created the comment with id \emph{i}. It's pre-allocated to a size of 700,000,000 comments, which is enough for the 100k dataset used in the SIGMOD preliminary evaluation. 
 \item \textbf{placeOrg} is a hash map that stores the place a given organization is located at.  
 \item \textbf{placeLocatedAtPlace} is a hash map that stores the place a given place is located at (e.g., Amherst is located in Massachusetts).  
 \item \textbf{namePlaces} is a hash map that stores the ids of all places with a given name. Note that different places (i.e., with different ids) can have the same name string.
@@ -272,14 +274,15 @@ x.  The hash map of neighbors stored by each person instance can be used
 to quickly prune edges that don't satisfy the constraint. 
 
 \subsubsection{Query2}
-First, we add all tags to a priority queue where the order of
+We add all tags to a priority queue where the order of
 the tags is based on the size of the largest connected component of
 the induced graph. To compute the connected components, we use the list of persons 
 that are interested in the tag, and information about the birthday stored 
 by each person node. We use this information to create the induced graph on-the-fly 
 and then compute the size of the largest connected component using several BFS.
               
-\subsubsection{Query3} \texttt{namePlaces} is used to find all places with
+\subsubsection{Query3} 
+First, \texttt{namePlaces} is used to find all places with
 the given name. For each of these places p, we perform a linear scan to find 
 all persons located at p and add these persons to the induced graph. 
 To check if a person is located at p, we use both the 
@@ -300,11 +303,12 @@ interest tags.
 the given name. Then the induced graph of persons that are member of
 forums with this tag is created, using the list stored by each \texttt{Tag} instance.
                
-The induced graph the centrality score of each person is computed
-using a BFS. Every time a node is expanding during the BFS, the
-algorithm checks if the best possible centrality this person can
-achieve is smaller than the k-th best centrality seen so far. If it
-is, the BFS is stopped. 
+On the induced graph the centrality score of each person p is computed
+using a BFS. Every time a node is expanded during a BFS for person p, the
+algorithm checks if the best possible centrality p can
+achieve (given the nodes expanded so far and their distances) 
+is smaller than the k-th best centrality seen so far (using a priority queue). 
+If it is, the BFS is stopped and person p can be ignored. 
 
 In our final submission we used an approximate version of this algorithm
 in which person nodes are first sorted by non-increasing node degree in the 
@@ -332,13 +336,13 @@ query.
 In our final design, queries are uniformly distributed between eight
 threads, under the assumption that all queries take approximately the
 same time to compute. This is true for our last approximate
-implementation of Query 4, although not for previous
+implementation of query 4, although not for previous
 implementations. In previous versions, type 4 queries were orders of
 magnitude more costly than the other query types. Thus, we also
 developed some versions in which two threads are exclusively dedicated
 to answer type 4 queries and the remaining threads to other query
 types.  It is worth mentioning that we also experimented with a
-multi-threaded version of Query 4, although we didn't obtain any
+multi-threaded version of q	uery 4, although we didn't obtain any
 significant computational savings from this version.
 
 %\subsection{Concurrency}
@@ -357,7 +361,7 @@ significant computational savings from this version.
   \label{fig:results}
   \caption{Evolution of the performance of our implementation on the
     SIGMOD system.  The horizontal axis gives the date of the
-    submission and while the vertical axis shows the runtime as
+    submission and the vertical axis shows the runtime as
     reported by the submission system.  Each submission is annotated
     with the optimizations that were introduced with it.  `Medium'
     indicates the dataset with 10,000 people and `Small' the dataset
@@ -385,15 +389,16 @@ computation of some queries could have been initiated before all data
 was loaded.
 
 \subsection{Further Investigation of Heuristics}
-We found that the introduction of a simple heuristic to the query four
+We found that the introduction of a simple heuristic to the query 4
 implementation significantly improved the runtime of the entire
 pipeline; namely, sorting person by non-increasing node degree in the
 then we only considered the top $25\%$.  After the contest, we found
 that sorting persons by two-step reachability and reducing the
 considered persons to the top $5\%$ yielded additional savings.  While
 these heuristics did not guarantee correctness, they were correct in
-practice.  The introduction of other simple heuristics or approximate algorithms for 
-computing graph measures could have provided more benefit.
+practice.  The introduction of other simple heuristics or more complex 
+algorithms for computing graph measures in large networks 
+could have provided more benefit (e.g., \cite{okamoto2008ranking,potamias2009fast}).
 
 \subsection{Implementation Language}
 We found that performance increased when we avoided `boxed' Java
