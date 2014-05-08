@@ -37,7 +37,7 @@ considerable interest in the database community.
   \centering
   \includegraphics[scale=0.45]{img/leaderboard.png}
   \label{fig:leader}
-  \caption{Final position of our team "shparg" in the SIGMOD programming challenge.}
+  \caption{Final position of our team `shparg' in the SIGMOD programming challenge.}
 \end{figure}
 
 \section{Background and Related Work}
@@ -46,8 +46,8 @@ considerable interest in the database community.
 \subsubsection{Data}
 We are provided with a relational dataset which describes a social
 network.  Example entities include people, interest tags and places, 
-and example relations include 'person knows person', 'person works at place'
-and 'person has interest in tag'.  Each entity and
+and example relations include `person knows person', `person works at place'
+and `person has interest in tag'.  Each entity and
 relationship is stored as a pipe-delimited file.  Entity files are
 named after the entity type (e.g. `person.csv') and contain features.
 Relation files are named after the relation they contain
@@ -63,7 +63,7 @@ submission is invalid) followed by runtime (with lower being better).
 termination.  Note that subtasks like reading the data into memory or
 constructing an index will factor in to the runtime.
 
-\subsubsection{Query types}
+\subsection{Query types}
 There are four types of queries that need to be answered.
 
 \subsubsection{query1(p1, p2, x)}
@@ -135,52 +135,57 @@ magnitude.
 Originally, we designed our implementation around the open-source
 Neo4j\footnote{\url{http://www.neo4j.org/}} disk-based graph database
 system.  We thought this system was appropriate because the queries in
-the challenge are largely path-oriented, and it is unlikely that all
-of the relevant data will fit in memory.  Neo4j makes use of the
-\emph{ADI} index structure \cite[Chapter~6]{IanRobinson:2013ul}
-described in \cite{wang2004scalable}, which is designed to facilitate
-efficient edge support checking (that is, quickly finding edges) and
-adjacent edge checking (that is, quickly finding edges that share a
-node).  This index structure seemed well-suited to the task at hand
-because it allows a graph on disk to be efficiently queried with
-regards to path.
+the challenge are largely path-oriented, and it seemed unlikely that
+all of the relevant data would fit in memory\footnote{Although we
+  later found that we could, in fact, fit the relevant data in
+  memory.}.  Neo4j makes use of the \emph{ADI} index structure
+\cite[Chapter~6]{IanRobinson:2013ul} described in
+\cite{wang2004scalable}, which is designed to facilitate efficient
+edge support checking (that is, quickly finding edges) and adjacent
+edge checking (that is, quickly finding edges that share a node).
+This index structure seemed well-suited to the task at hand because it
+allows a graph on disk to be efficiently queried with regards to path.
 
 Our implementation of this approach performed very poorly, however.
-An implicit assumption of this design was that the high fixed cost of
+An implicit assumption of this design was that the high initial cost of
 populating the graph database would be amortized over the large number
 of queries against the data.  Instead, we found that the runtime cost 
 of reading and indexing the data using Neo4j was prohibitively large,
-therefore any potential improvement Neo4j could offer in query performance
+and any potential improvement Neo4j could offer in query performance
 would not offset the cost of populating the database.
-It seems likely that this undesirable behavior will be found
+It seemed likely that this undesirable behavior will be found
 with other database systems; if fixed setup costs are amortized over
 the lifetime of a database system measured in years, the cost of
 establishing the database is trivial, so reducing this cost is likely
-not a design goal.
+not a design goal.  So, we abandoned the embedded database approach.
 
 \subsubsection{In-Memory Design}
-We turned our attention to a simpler key-value approach tailored 
-to the SIGMOD challenge dataset. 
-Specifically, we indexed nodes and edges via several simple 
-in-memory hash tables, one for each type of node or edge 
-relevant to the queries. 
-This design choice was motivated by an analysis of the provided 
-datasets (1k and 10k persons), which suggested that most of the
-storage needs are due to node types whose persistence is not needed to 
-answer the queries (i.e., comments and forums). With the right 
-pre-processing this information is only needed to update information 
-only while the database is populated
-(e.g., how many comments have persons given to each other).
+We turned our attention to a simpler key-value approach tailored to
+the SIGMOD challenge dataset.  Specifically, we indexed nodes and
+edges via several simple in-memory arrays and hash tables, with one
+structure for each type of node or edge relevant to the queries.  This
+design choice was motivated by an analysis of the provided datasets
+(1k and 10k persons), which suggested that most of the storage needs
+are due to nodes that need not persist through the query phase;
+examples include comments and forums. This information is required to
+persist only while the database is populated; for instance, comments
+nodes are required to compute the number of comments between people,
+but are not needed thereafter.  We confirmed on the SIGMOD system that
+this design could hold a 100k person dataset in memory without
+exceeding the 15Gb of available memory.
 
-We confirmed on the SIGMOD system that this design could hold in memory a 
-100k persons dataset without exceeding the 15Gb of available memory for 
-the contest. Overall, the current memory-based approach both reduced the time it took 
-to index the data and improved the speed of the queries by several orders 
-of magnitude with respect to our initial Neo4j implementation. Moreover,
-during the actual contest it became clear that the running time of the more 
-difficult queries (in particular query4) was the real bottleneck, so the final
-simple design was largely motivated by attempting to solve all queries on the 100k 
-dataset after the data was completely loaded in memory. 
+The in-memory approach both reduced the time it took to both index the
+data and improved and answer the queries by several orders of
+magnitude, with respect to our initial Neo4j implementation.  We
+accordingly moved forward with the in-memory design.
+
+%%% LUIS - I don't think this really fits here.  What do you think? %%%
+%Moreover, during the
+%actual contest it became clear that the running time of the more
+%difficult queries (in particular query4) was the real bottleneck, so
+%the final simple design was largely motivated by attempting to solve
+%all queries on the 100k dataset after the data was completely loaded
+%in memory.
 
 %Accordingly, we propose the following approach.  Our primary data
 %abstraction will be an adjacency matrix over the nodes which
@@ -225,12 +230,13 @@ dataset after the data was completely loaded in memory.
 
 
 \subsubsection{Data structures and indexes}
-This memory-based design, implemented in Java, defines the following data structures for each 
-of the relevant entities defined in this database: 
+Our Java implementation of the in-memory design defines the following
+data structures for each of the relevant entities in the contest data.
+
 \begin{itemize}
 \item \textbf{Person} stores a 32-bit integer representing the person's id, a 64-bit integer representing the person's birthday, a list of tag interests, a list of locations and a hash map of known persons associated with the replies given to each of them.
-\item \textbf{Tag} stores a 32-bit integer representing the tag's id, stores a string representing the tag name, a hash set of persons interested in this tag and a hash set of persons interested in this tag through a forum membership. 
-\item \textbf{Forum} stores a 32-bit integer representing the forum's id, and a list of tags this forum is associated with.
+\item \textbf{Tag} stores a 32-bit integer representing the tag's id, a string representing the tag name, a hash set of persons interested in this tag and a hash set of persons interested in this tag through a forum membership. 
+\item \textbf{Forum} stores a 32-bit integer representing the forum's id and a list of tags this forum is associated with.
 \end{itemize}
 
 For each entity in the social network we create an instance of the corresponding data structure. Each type of entity is stored in its own in-memory table, which is indexed by the 32-bit id. In the case of the persons table, since the datasets always include all persons ids in the rage (e.g., ids 0 to 9,999 for the 10k dataset) we used a pre-allocated array of size 100k with a one to one mapping between the id and the array index; this lead to faster data loading and query response times. For all other entity types, we used hash maps indexes. 
@@ -239,30 +245,33 @@ Additionally, we stored the following relationship tables:
 
 \begin{itemize}
 \item \textbf{commentCreator} stores the 32-bit id of the person who created each comment, indexed by a 32-bit comment id. It is essentially and array where index \emph{i} stores the id of the person that created the comment with id \emph{i}. It's pre-allocated to a size of 700,000,000 comments, which is enough for the 100k dataset used in the SIGMOD preliminary evaluation. 
-\item \textbf{placeOrg} a hash map storing the place a given organization is located at.  
-\item \textbf{placeLocatedAtPlace} a hash map storing the place a given place is located at (e.g., Amherst is located in Massachusetts).  
-\item \textbf{namePlaces} Is hash map storing the ids of all places with a given name. Note that there can be different places (i.e., with different ids) having the same name string.
+\item \textbf{placeOrg} is a hash map that stores the place a given organization is located at.  
+\item \textbf{placeLocatedAtPlace} is a hash map that stores the place a given place is located at (e.g., Amherst is located in Massachusetts).  
+\item \textbf{namePlaces} is a hash map that stores the ids of all places with a given name. Note that different places (i.e., with different ids) can have the same name string.
 \end{itemize}
 
-These tables are populated by reading files such as person.csv, 
-comments.csv, tags.csv, comment\_hasCreator\_person.csv and so forth. 
-Most of the memory consumption is due to the \texttt{commentCreator} table.
-However, this table is only used temporarily during data loading, 
-to obtain the number of replies each person has given each other. After
-these numbers are stored in the persons table, the table \texttt{commentCreator}
-is cleared so that the memory can be used for other parts of the dataset. 
+These tables are populated by reading files such as person.csv,
+comments.csv, tags.csv, comment\_hasCreator\_person.csv and so forth.
+Most of the memory consumption is due to the \texttt{commentCreator}
+table.  However, this table is only used temporarily during data
+loading, to obtain the number of replies between people. The table
+\texttt{commentCreator} is cleared after these numbers are stored in
+the persons table so that freed memory can be used for other parts of
+the dataset.
 
 \subsection{Query Implementations}
 
 We implement each query as a graph algorithm over the graph defined by
 the indexed data.
 
-\subsubsection{Query1} A bidirectional breadth first search (BFS) of the
+\subsubsection{Query1}
+We solve Query 1 via a bidirectional breadth first search (BFS) of the
 person\_knows\_person graph based on the constraint on number of replies
 x.  The hash map of neighbors stored by each person instance can be used
 to quickly prune edges that doesn't satisfy the constraint. 
 
-\subsubsection{Query2} Add all tags to a priority queue where the order of
+\subsubsection{Query2}
+First, we add all tags to a priority queue where the order of
 the tags is based on the size of the largest connected component of
 the induced graph. To compute the connected components, we use the list of persons 
 that are interested in the tag, and information about the birthday stored 
@@ -270,7 +279,7 @@ by each person node. We use this information to create the induced graph on-the-
 and then compute the size of the largest connected component using several BFS.
               
 \subsubsection{Query3} \texttt{namePlaces} is used to find all places with
-the given name. For each of these places p, we do a linear scan to find 
+the given name. For each of these places p, we perform a linear scan to find 
 all persons located at p and add these persons to the induced graph. 
 To check if a person is located at p, we use both the 
 list of places stored by the person node, but also the table 
@@ -290,7 +299,7 @@ interest tags.
 the given name. Then the induced graph of persons that are member of
 forums with this tag is created, using the list stored by each \texttt{Tag} instance.
                
-the induced graph the centrality score of each person is computed
+The induced graph the centrality score of each person is computed
 using a BFS. Every time a node is expanding during the BFS, the
 algorithm checks if the best possible centrality this person can
 achieve is smaller than the k-th best centrality seen so far. If it
@@ -311,31 +320,33 @@ However, it did not work on the 1k dataset. Nevertheless, it
 should be possible to devise an exact version of this strategy based on some
 incremental pruning of approximate centrality computations. 
 
-\subsection{Multi-threading}
-To take advantage of the 8 cores provided by the SIGMOD system, we developed a 
+\subsection{Concurrency}
+To take advantage of the eight cores provided by the SIGMOD system, we developed a 
 multi-threaded implementation of the query solver. Since the challenge involves 
 answering hundreds of queries, the easiest (and possibly best) way to take 
 advantage of parallelism is to cleverly distribute queries between different
 threads, instead of developing complex multi-threaded implementations of each 
 query. 
 
-In our final design, queries are uniformly distributed between 
-8 threads, under the assumption that all queries take approximately the same time
-to compute. This is true for our last approximate implementation of Query 4,
-although not for previous implementations. In previous versions, type 4 queries were
-orders of magnitude more costly than the other query types. Thus, we also 
-developed some versions in which 2 threads are exclusively dedicated to answer 
-type 4 queries and the remaining threads to other query types. 
-It is worth mentioning that we also experimented with a multi-threaded version of Query 4,
- although we didn't obtain any significant computational savings from this version.
+In our final design, queries are uniformly distributed between eight
+threads, under the assumption that all queries take approximately the
+same time to compute. This is true for our last approximate
+implementation of Query 4, although not for previous
+implementations. In previous versions, type 4 queries were orders of
+magnitude more costly than the other query types. Thus, we also
+developed some versions in which two threads are exclusively dedicated
+to answer type 4 queries and the remaining threads to other query
+types.  It is worth mentioning that we also experimented with a
+multi-threaded version of Query 4, although we didn't obtain any
+significant computational savings from this version.
 
-\subsection{Concurrency}
-We introduced concurrent behavior in order to take full advantage of
-the multi-core test system (which is described in section
-\ref{sec:results}).  All concurrent behavior took place in the query
-phase.  Specifically, the queries were distributed evenly among
-available cores and run concurrently, and within queries of type four,
-the centrality of each individual was computed concurrently.
+%\subsection{Concurrency}
+%We introduced concurrent behavior in order to take full advantage of
+%the multi-core test system (which is described in section
+%\ref{sec:results}).  All concurrent behavior took place in the query
+%phase.  Specifically, the queries were distributed evenly among
+%available cores and run concurrently, and within queries of type four,
+%the centrality of each individual was computed concurrently.
 
 \section{Results}
 \label{sec:results}
